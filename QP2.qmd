@@ -1,0 +1,312 @@
+---
+title: "QP"
+author: "Arvind Venkatadri"
+date: 12/March/2023
+date-modified: "`r Sys.Date()`"
+format: html
+editor: source
+abstract: "Created partially using ChatGPT on 3 March 2023 by Arvind Venkatadri"
+number-sections: true
+number-depth: 4
+---
+
+```{r}
+#| label: setup
+#| echo: true
+#| message: false
+#| warning: false
+
+library(tidyverse)
+library(mosaic)
+
+library(tidytuesdayR)
+library(faux) # fake data
+library(regressinator) # fake data and regression stuff
+library(datarium) # datasets
+
+library(janitor)
+library(glue)
+library(epoxy)
+library(broom)
+
+library(DataExplorer)
+library(waffle)
+library(gridExtra)
+library(cowplot)
+library(showtext)
+library(ggtextures)
+library(ggpattern)
+library(ggparliament)
+library(ggmulti)
+library(ggmosaic)
+library(ggridges)
+library(scales)
+library(timetk)
+library(sjPlot)
+library(sjlabelled)
+
+library(ggprism)
+library(ggpubr)
+library(ggradar)
+library(plotrix)
+library(ggbump)
+
+library(ggplotify)
+
+# Tables
+library(flextable)
+library(gt)
+library(gridExtra)
+
+library(GGally)
+library(corrplot)
+
+theme_set(theme_classic())
+
+```
+
+## Question Types
+
+Section A: Chart Prediction/Inference
+
+-   Each Question can have smaller specific sub-questions relating to
+    ~~the code lines~~ charts
+-   ~~Errors can be commission or omission type ( code is otherwise
+    complete, no blanks)~~
+
+With ~~or without~~ pictures
+
+-   ~~dplyr things (filter , group_by + summarize)~~
+-   ~~ggformula things (point, bar, col, box, histogram, density)~~
+-   ~~dplyr + ggformula things~~
+-   Questions related to aims/desires for the graph, and answers need to
+    be code lines
+-   Shapes and Metaphors
+-   Sequencing of code
+-   Good idea or bad idea with respect to specific geoms/ graphs
+
+Section B: Short Essays..horrors!!
+
+Section C: Case Study
+
+-   Description of a Dataset
+-   BW Picture of Detailed Visualization
+-   Write Code
+-   Write Insights
+-   Write Further Action/ Analysis
+
+## Section A: Chart Prediction/Inference
+
+### Artificial Intelligence
+
+```{r}
+#| echo: false
+#| message: false
+ai <- read_csv("./data/corporate-investment-in-artificial-intelligence-by-type.csv",show_col_types = TRUE, name_repair = ~ make_clean_names(., case = "small_camel")) %>% 
+  mutate(total = totalCorporateInvestmentInflationAdjusted / 1000000000)
+ai
+
+```
+
+```{r}
+#| echo: false
+#| message: false
+ai %>% 
+  filter(entity != "Total") %>% 
+  ggplot() +
+  geom_col_pattern(aes(x = year, y = total, pattern = entity, pattern_angle = entity ), fill = 'white', colour = 'black', pattern_spacing = 0.025) +
+  
+  scale_y_continuous(labels = label_dollar(prefix = "USD ", 
+                                           suffix = " billion")) +
+  scale_x_continuous(labels = c(2013:2022), breaks = c(2013:2022)) + 
+  labs(x = "Year", y = "Investment", 
+       title = "Annual global corporate investment in artificial intelligence, by type", 
+       subtitle = "This data is expressed in US dollars, adjusted for inflation.", 
+       caption = "Data: https://ourworldindata.org/artificial-intelligence") + 
+  theme_classic() -> p1
+p1
+
+```
+
+```{r}
+#| echo: false
+ggsave(p1, filename = "figures/ai-investment.png", device = ragg::agg_png, res = 300)
+
+```
+
+-   Identify the type of chart
+-   Identify the variables used for various geometrical aspects
+-   What changes in investment trends do you see?
+-   When do these changes seem to have occurred?
+-   Write skeleton ggformula code to create this graph.
+
+### Big Tech Stock Prices
+
+https://www.morningstar.com/markets/5-charts-big-tech-stocks-collapse
+
+tidyTuesday 2023-02-07
+
+```{r}
+#| label: stock-gains-losses
+#| cache: true
+
+big_tech_stock_prices <- readr::read_csv('https://raw.githubusercontent.com/rfordatascience/tidytuesday/master/data/2023/2023-02-07/big_tech_stock_prices.csv')
+big_tech_companies <- readr::read_csv('https://raw.githubusercontent.com/rfordatascience/tidytuesday/master/data/2023/2023-02-07/big_tech_companies.csv')
+
+big_tech_stock_prices |> 
+  tsibble::as_tsibble(index = date, key = stock_symbol) |> 
+  group_by(stock_symbol) |> 
+  tsibble::index_by(year_group = year(date)) |> 
+  summarize(mean_price = mean(close))
+start_2022 <- big_tech_stock_prices |> 
+  tsibble::as_tsibble(index = date, key = stock_symbol) |>
+  tsibble::filter_index("2022-01-03") |> 
+  select(stock_symbol,date, open)
+end_2022 <- big_tech_stock_prices |> 
+  tsibble::as_tsibble(index = date, key = stock_symbol) |>
+  tsibble::filter_index("2022-12-29") |> 
+  select(stock_symbol,date, close)
+gains_2022 <- left_join(start_2022, end_2022, by = "stock_symbol") |> 
+  mutate(gain = close - open, 
+         percent_gain = (gain/open)*100) |> 
+  select(stock_symbol, open, gain, percent_gain)
+
+start_2021 <- big_tech_stock_prices |> 
+  tsibble::as_tsibble(index = date, key = stock_symbol) |>
+  tsibble::filter_index("2021-01-04") |> 
+  select(stock_symbol,date, open)
+end_2021 <- big_tech_stock_prices |> 
+  tsibble::as_tsibble(index = date, key = stock_symbol) |>
+  tsibble::filter_index("2021-12-31") |> 
+  select(stock_symbol,date, close)
+
+gains_2021 <- left_join(start_2021, end_2021, by = "stock_symbol") |> 
+  mutate(gain = close - open, 
+         percent_gain_2021 = (gain/open)*100) |> 
+  select(stock_symbol, open, gain, percent_gain_2021) 
+
+gains_2022 <- left_join(start_2022, end_2022, by = "stock_symbol") |> 
+  mutate(gain = close - open, 
+         percent_gain_2022 = (gain/open)*100) |> 
+  select(stock_symbol, open, gain, percent_gain_2022)
+
+gains_2021_2022 <- 
+  left_join(gains_2021, gains_2022, by = "stock_symbol") |> 
+  pivot_longer(cols = c(percent_gain_2022, percent_gain_2021), 
+               values_to = "prices", names_to = "year") |> 
+  select(stock_symbol, year, prices) |> 
+  separate_wider_regex(cols = year, cols_remove = TRUE, 
+                       patterns = c("percent_gain_", year = "\\d+")
+                       )
+
+
+gains_2021_2022 |> 
+  ggplot() + geom_col_pattern(aes(x = stock_symbol, y = prices, pattern = year, pattern_angle = year),fill = 'white',colour          = 'black', pattern_density = 0.35, pattern_fill    = 'black',
+    pattern_colour  = 'black', position = "dodge") + 
+  labs(y = "Percent Gains in each Year")
+
+```
+
+-   What chart(s) are used in the above figure?
+-   Write a one-sentence story describing the main point of this chart
+-   If the original data contained day-by-day open/close stock prices
+    for each stock symbol, what pre-calculation might have been
+    necessary to plot this chart?
+-   Write skeleton code to obtain this chart. Use ggformula or ggplot.
+
+### Scurvy and its treatment
+
+https://htmlpreview.github.io/?https://github.com/higgi13425/medicaldata/blob/master/man/description_docs/scurvy_desc.html
+
+```{r}
+#| label: scurvy
+#| cache: true
+scurvy <- readr::read_csv('https://raw.githubusercontent.com/rfordatascience/tidytuesday/master/data/2023/2023-07-25/scurvy.csv')
+# Make variable labels and levels
+likert_labels = c("none", "mild", "moderate","severe") # numerically 0:3
+variable_labels <- c("Gum Rot",
+                     "Skin Sores",
+                     "Knee Weakness",
+                     "Lassitude",
+                     "Fit for Duty")
+
+scurvy_clean <- scurvy |> 
+  select(contains("d6")) |> 
+  separate_wider_delim(cols = gum_rot_d6, 
+                       delim = "_",
+                       names = c("gum_rot", NA), # "into" from separate()
+                       names_repair = make_clean_names) |> 
+  separate_wider_delim(cols = skin_sores_d6, 
+                       delim = "_",
+                       names = c("skin_sores", NA), # "into" from separate()
+                       names_repair = make_clean_names) |> 
+  separate_wider_delim(cols = weakness_of_the_knees_d6, 
+                       delim = "_",
+                       names = c("knee_weakness", NA),
+                       names_repair = make_clean_names) |> 
+  separate_wider_delim(cols = lassitude_d6, 
+                       delim = "_",
+                       names = c("lassitude", NA), # "into" from separate()
+                       names_repair = make_clean_names) |> 
+  separate_wider_delim(cols = fit_for_duty_d6, 
+                       delim = "_",
+                       names = c("fit_for_duty", NA), 
+                       names_repair = make_clean_names) |> 
+  mutate(across(1:5, as.integer)) 
+
+scurvy_clean <- scurvy_clean |> 
+  sjlabelled::set_label(label = variable_labels) |> 
+  sjlabelled::set_labels(labels = likert_labels) |> 
+  cbind(scurvy$treatment) |> 
+  rename("treatment" = `scurvy$treatment`)
+
+
+scurvy_clean
+# scurvy_clean |> 
+#   select(- c(fit_for_duty, treatment)) |>  
+#   sjPlot::plot_likert(title = "Scurvy Treatment Study", 
+#                       reverse.colors = TRUE,
+#                       values = "sum.outside")
+
+scurvy_chart <- scurvy_clean %>%
+  group_by(treatment) %>%
+  nest(.key = "list") %>%
+  mutate(charts = map(
+    .x = list, 
+    .f = \(.x) sjPlot::plot_likert(items = .x,
+                     title = "",
+                     reverse.colors = TRUE,
+                     values = "show", 
+                     legend.pos = "top",
+                     show.legend = F, wrap.labels = 25)
+          )
+  )
+
+library(cowplot)
+
+p1 <- scurvy_chart |> pluck("charts",1)
+p2 <- scurvy_chart |> pluck("charts",2)
+p3 <- scurvy_chart |> pluck("charts",3)
+p4 <- scurvy_chart |> pluck("charts",4)
+p5 <- scurvy_chart |> pluck("charts",5)
+p6 <- scurvy_chart |> pluck("charts",6)
+
+cowplot::plot_grid(p1, p2, p3, p4, p5, p6,
+                   labels = c('Cider', 'Sulphuric Acid', 'Vinegar', 'Sea Water', 'Citrus', 'Purgative'),
+                   align="hv")
+
+
+```
+
+### Markets from `datarium`
+
+```{r}
+data("weightloss", package = "datarium")
+weightloss
+
+```
+
+
+## Section B: Short Essays..horrors!!
+
+## Section C: Case Study

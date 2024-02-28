@@ -1,0 +1,1607 @@
+---
+title: "QP"
+author: "Arvind Venkatadri"
+date: 12/March/2023
+date-modified: "`r Sys.Date()`"
+format: html
+editor: visual
+abstract: "Created partially using ChatGPT on 3 March 2023 by Arvind Venkatadri"
+number-sections: true
+number-depth: 4
+---
+
+```{r}
+#| label: setup
+#| echo: true
+#| message: false
+#| warning: false
+
+library(tidyverse)
+library(mosaic)
+library(tidytuesdayR)
+library(faux) # fake data
+library(regressinator) # fake data and regression stuff
+library(janitor)
+library(glue)
+library(epoxy)
+library(broom)
+
+library(waffle)
+library(gridExtra)
+library(cowplot)
+library(showtext)
+library(ggtextures)
+library(ggpattern)
+library(ggparliament)
+library(ggmulti)
+library(ggmosaic)
+library(ggridges)
+library(scales)
+library(timetk)
+
+library(ggprism)
+library(ggpubr)
+library(ggradar)
+library(plotrix)
+library(ggbump)
+
+### Graphs
+library(tidygraph)
+library(ggraph)
+library(igraph)
+library(igraphdata)
+
+# Maps
+library(cartogram)
+library(scales)
+
+
+library(countrycode)
+library(circlize)
+
+library(grid)
+library(ggplotify)
+
+# Tables
+library(flextable)
+library(gt)
+library(gridExtra)
+
+library(GGally)
+library(corrplot)
+
+theme_set(theme_classic())
+```
+
+## Section A: Chart Prediction/Inference
+
+-   Each Question can have smaller specific sub-questions relating to
+    ~~the code lines~~ charts
+-   ~~Errors can be commission or omission type ( code is otherwise
+    complete, no blanks)~~
+
+With ~~or without~~ pictures
+
+-   ~~dplyr things (filter , group_by + summarize)~~
+-   ~~ggformula things (point, bar, col, box, histogram, density)~~
+-   ~~dplyr + ggformula things~~
+-   Questions related to aims/desires for the graph, and answers need to
+    be code lines
+-   Shapes and Metaphors
+-   Sequencing of code
+-   Good idea or bad idea with respect to specific geoms/ graphs
+
+### Artificial Intelligence
+
+```{r}
+ai <- read_csv("./data/corporate-investment-in-artificial-intelligence-by-type.csv",show_col_types = TRUE,
+         name_repair = ~ make_clean_names(., case = "small_camel")) %>% mutate(total = totalCorporateInvestmentInflationAdjusted / 1000000000)
+ai
+
+```
+
+```{r}
+#| eval: false
+ai %>% filter(entity != "Total") %>% 
+  ggplot() +
+  geom_col_pattern(aes(x = year, y = total, pattern = entity, pattern_angle = entity ),
+                   fill = 'white', 
+                   colour = 'black',
+                   pattern_spacing = 0.025) +
+  scale_y_continuous(labels = label_dollar(prefix = "USD ", 
+                                           suffix = " billion")) +
+  scale_x_discrete(limits = c(2013:2022)) + 
+  labs(x = "Year", y = "Investment", 
+       title = "Annual global corporate investment in artificial intelligence, by type", 
+       subtitle = "This data is expressed in US dollars, adjusted for inflation.", 
+       caption = "Data: https://ourworldindata.org/artificial-intelligence") + 
+  theme_classic() -> p1
+
+p1
+ggsave(p1, filename = "figures/ai-investment.png", device = ragg::agg_png, res = 300)
+
+```
+
+-   Identify the type of chart
+-   Identify the variables used for various geometrical aspects
+-   What changes in investment trends do you see?
+-   When do these changes seem to have occurred?
+-   Write skeleton ggformula code to create this graph.
+
+### AI Computations
+
+```{r}
+#| eval: false
+comp <- read_csv("data/artificial-intelligence-training-computation.csv", show_col_types = TRUE, 
+       name_repair = ~ make_clean_names(., case = "small_camel")) %>%  mutate(trg = trainingComputePetaFlop) 
+comp
+```
+
+```{r}
+#| eval: false
+comp %>% filter(domain %in% c("Language", "Games", "Speech", "Vision") ) %>% 
+  ggplot(aes( x = day, y = trg)) + 
+  geom_point(aes(shape = domain), size = 4, alpha = 0.5) +
+  geom_text(aes(label = entity), size = 3, nudge_x = 5, 
+            nudge_y = 1, check_overlap = TRUE) +
+  scale_y_log10(labels = scales::label_number(
+    scale_cut = scales::cut_short_scale(0.00000000001))) +
+  labs(y = "Training petaFLOPS", x = "Year",
+       title = "Computation used to train notable artificial intelligence systems") +
+  scale_shape_manual(values = c(0,1,19,15)) +
+  theme_classic() + (theme(legend.position = "bottom"))-> p2
+
+p2
+ggsave(p2, filename = "figures/ai-computation.png", device = ragg::agg_png, res = 300)
+```
+
+-   What kind of plot is this?
+-   What are the variables used?
+-   To which geometric aspect is each variable mapped?
+-   Write skeleton ggformula code to obtain this graph
+
+### Traffic Accidents in the UK
+
+```{r}
+#| eval: false
+uk <- readxl::read_excel("data/ras0101.xlsx", sheet = "Casualties",range = "J7:N103",.name_repair = ~ make_clean_names(., 
+                              case = "big_camel")) %>% 
+    filter(Year>= 1952) %>%
+  mutate(across(where(is.character), as.integer))
+uk
+uk %>% pivot_longer(cols = -Year, values_to = "counts", names_to = "type") %>% drop_na() %>% 
+  gf_line(counts ~ Year, group = ~type, show.legend = FALSE) %>% 
+  gf_point(shape = ~ type, size = 1.5, show.legend = FALSE) %>% 
+  gf_text(label = "Casualties rate \n(per billion vehicle miles)", 4250 ~ 1980, inherit = FALSE) %>% 
+  gf_text(label = "Vehicle Miles(Billions)", 350 ~ 1980, inherit = FALSE) %>% 
+  gf_text(label = "Population(millions)", 80 ~ 1980, inherit = FALSE) %>% 
+  gf_text(label = "Registered Vehicles(millions)", 10 ~ 1980, inherit = FALSE) %>% 
+  gf_labs(title = "UK Road Accident Casualties",y = "Values", caption = "Data: https://www.gov.uk/transport/road-safety-driving-rules-and-penalties") %>% 
+  gf_refine(scale_y_log10()) %>% 
+  gf_refine(scale_shape_manual(values = c(0,1,2,5))) %>% 
+  gf_theme(theme_classic()) -> p3
+
+p3
+ggsave(p3, filename = "figures/traffic-uk.png", device = ragg::agg_png, res = 300)
+```
+
+-   Identify the charts used
+-   What might the variables be? Are they Qualitative or Quantitative?
+-   What is the trend with the Casualties per billion vehicle-miles?
+-   What might you infer from this trend?
+-   Write skeleton ggformula code to obtain this graph.
+
+### Caring Cities in the US <https://wallethub.com/edu/most-caring-cities/17814>
+
+```{r, warning=FALSE}
+#| eval: false
+us <- readxl::read_excel("data/caring_cities.xlsx", 
+                         .name_repair = ~ make_clean_names(., 
+                          case = "big_camel"))
+us
+us_long <- us %>% pivot_longer(cols = -c(OverallRank, City), names_to = "Type", values_to = "Scores") %>% 
+  filter(Type != "TotalScore", 
+         OverallRank %in% 1:5) %>% 
+  group_by(Type) %>% mutate(rank = rank(Scores))
+
+us_long %>% 
+  ggplot(aes(x = Type, y = rank, group = City)) +
+  geom_bump(aes(linewidth = City)) + 
+  geom_point(aes(shape = City), size = 8) +
+  labs(x = "Caring Parameter", y = "Rank(1:5)", title = "How much to US Cities score on Caring?", caption = "Data Source: https://wallethub.com/edu/most-caring-cities/17814") + 
+  geom_text(data = us_long %>% 
+              filter(Type == "CaringForTheCommunity"),
+            aes(x = 0.9 , label = City, y = rank),
+            size = 3, hjust = 1) +
+  geom_text(data = us_long %>% 
+              filter(Type == "CaringInTheWorkforce"),
+            aes(x = 3.1, label = City, y = rank),
+            size = 3, hjust = 0) +
+  scale_shape_manual(values = c(21:25)) + 
+  scale_linewidth_manual(values = c(1:6)) + 
+  scale_linetype_manual(values = c("solid", "dashed", "dotted", "longdash", "dotdash")) + 
+  theme_classic() + 
+  theme(legend.position = "none")-> p4
+
+p4
+ggsave(p4, filename = "figures/caring-cities.png", device = ragg::agg_png, res = 300)
+
+```
+
+-   What kind of graphs are used in this chart?
+-   Which variables are mapped to which geometric aesthetics?
+-   Where would you want to work if you were a Social Worker? Justify
+    based on the graph.
+-   Write skeleton R code for this chart.
+
+### Extreme Temperature in Greece <https://www.ecad.eu/dailydata/index.php>
+
+```{r}
+#| eval: false
+athens <- read_csv("data/Greece/ncei-Athens.csv", 
+              skip = 1, show_col_types = FALSE,
+              name_repair = ~ make_clean_names(., case = "big_camel")) %>%  mutate(month = month(Date),
+       year = year(Date))
+athens
+
+athens_summary <- athens %>% 
+  drop_na(TavgDegreesFahrenheit) %>% 
+  group_by(year, month) %>% 
+  summarise(mean_temp = mean(TavgDegreesFahrenheit),
+            max_temp = max(TavgDegreesFahrenheit))
+
+athens %>% ggplot() +
+  geom_boxplot(aes(x = month, y = TavgDegreesFahrenheit, group = month), 
+               fill = "grey90", colour = "grey") +
+  geom_point(data = athens_summary %>% filter(year == 2023),
+  aes(y = max_temp, x = month, group = month), shape = 16, size = 4) +
+  annotate(x = 2.5, y = 80, "text", label = "Black Dots: 2023") +
+labs(x = "Month", y = "Daily Mean Temperature (F)",
+          title = "Daily MEAN Temperature in Athens, Greece over 1850-2023",
+     subtitle = "Plotted by Month") +
+  scale_x_continuous(breaks = c(1:12), labels = month.abb) +
+  theme_classic()-> p5
+
+p5
+ggsave(p5, filename = "figures/greece-fires.png", device = ragg::agg_png, res = 300)
+
+```
+
+-   What kind of graphs are used in this chart?
+-   What are the geometries used and to which variables are they mapped?
+-   Do you see evidence in the graph for the wildfires that engulfed
+    Greece in July 2023? Explain which aspects of the graph lead you to
+    infer this and why.
+-   Write skeleton R code for this chart.
+
+### Erasmus Mobility
+
+```{r}
+#| eval: false
+#import data from tidytuesday github
+df <- readr::read_csv('https://raw.githubusercontent.com/rfordatascience/tidytuesday/master/data/2022/2022-03-08/erasmus.csv')
+
+#which countries sends the most students abroad?
+top_sending<-df%>%
+  filter(sending_country_code!=receiving_country_code)%>%
+  group_by(sending_country_code)%>%
+  summarise(students=sum(participants))%>%
+  arrange(-students)%>%
+  head(10)
+
+#which countries receive the most students?
+top_receiving<-df%>%
+  filter(sending_country_code!=receiving_country_code)%>%
+  group_by(receiving_country_code)%>%
+  summarise(students=sum(participants))%>%
+  arrange(-students)%>%
+  head(10)
+
+#create a list of countries that are either in the top 10 sending or top 10 receiving
+#convret list of country codes to country names. manually plug in "UK", not part of iso code list
+top_country_codes<-unique(c(top_sending$sending_country_code, top_receiving$receiving_country_code))
+top_countries<-countrycode(top_country_codes , origin="iso2c", destination="iso.name.en")
+top_countries[5]<-"United Kingdom"
+
+data<-df%>%
+  #use the countrycode function to convert codes to country names for both receiving and sending countries
+  mutate(
+         to= countrycode(receiving_country_code, origin="iso2c", destination="iso.name.en"),
+         from= countrycode(sending_country_code , origin="iso2c", destination="iso.name.en"),
+         )%>%
+  #United Kingdom and Greece not translated with ISO country codes, override with dplyr "replace"
+  mutate(
+        to = replace(to, receiving_country_code=="UK","United Kingdom"),
+        from = replace(from, sending_country_code=="UK","United Kingdom"), 
+        to = replace(to, receiving_country_code=="EL","Greece"),
+        from = replace(from, sending_country_code=="EL","Greece")
+  )%>%
+  #summarise number of participants by sending and receiving country code
+  group_by(from, to)%>%
+  summarise(value=sum(participants))%>%
+  arrange(-value)
+
+#subset data to simplify chord diagram
+#filter out records where country "from" is the same as country "to". select countries part of top countries list
+chord_data<-data%>%
+  filter(from!=to)%>%
+  filter(from %in% top_countries & to %in% top_countries)%>%
+  arrange(-value)
+
+#replace Netherlands (the) with Netherlands for all occurences (from and to)
+chord_data[chord_data=="Netherlands (the)"]<-"Netherlands"
+
+#create custom color palette, sites like https://coolors.co/ make it easy
+pal<-c("#002765","#0061fd","#1cc6ff","#00b661","#5bf34d","#ffdd00","#ff7d00","#da2818","#ff006d","#8f00ff","#453435","black","grey80")
+
+#based on tutorial from https://jokergoo.github.io/circlize_book/book/the-chorddiagram-function.html
+chordDiagram(chord_data, grid.col = pal) -> p6
+
+p6
+# ggsave(p6, filename = "figures/erasmus.png", device = ragg::agg_png, res = 300)
+
+#convert chordDiagram (base plot) to grid plot to combine with ggplot annotations and theme details
+# p<-recordPlot()
+# as.ggplot(ggdraw(p))+
+#   labs(title="ERASMUS STUDENT MOBILITY",
+#        subtitle="Graphic depicts movement of participants between top participating countries from 2014 to 2020",
+#        caption="Data from Data.Europa | Chart by @tanya_shapiro")+
+#   theme(text=element_text(family="Arial"),
+#         plot.title=element_text(hjust=0.5, face="bold", size=18),
+#         plot.subtitle=element_text(hjust=0.5, size=12, margin=margin(t=10)),
+#         plot.caption=element_text(size=10, hjust=0.95, margin=margin(b=12)),
+#         plot.margin   =margin(t=20))
+
+#ggsave("erasmus.jpeg", height=9, width=9)
+```
+
+### IKEA Furniture -1
+
+https://github.com/dgrtwo/data-screencasts/blob/master/2020_11_03_ikea.Rmd
+
+```{r}
+#| eval: false
+library(ggridges)
+tt <- tt_load("2020-11-03")
+
+ikea <- tt$ikea 
+
+ikea %>%
+  select(-...1) %>%
+  mutate(price_usd = 0.27 * price,
+         short_description = str_squish(short_description)) %>%
+  add_count(category, name = "category_total") %>% 
+  mutate(category = glue("{ category } ({ category_total })"),
+         category = fct_reorder(category, price_usd)) %>%
+  filter(category_total >= 150) %>% 
+  ggplot(aes(price_usd, category, fill = other_colors)) +
+  geom_density_ridges(alpha = .5, aes(linetype = other_colors)) +
+  scale_x_log10(labels = dollar) +
+  scale_fill_manual(values = c("grey10", "grey")) + 
+  labs(x = "Price (USD)",
+       y = "",
+       title = "How much do items in each IKEA category cost?",
+       subtitle = "Are they avalaible in other colors?",
+       caption = "TidyTuesday Dataset for 03/11/2020") +
+  theme_classic() -> p7
+
+p7
+ggsave(p7, filename = "figures/ikea-prices.png", device = ragg::agg_png, res = 300)
+```
+
+-   What is the kind of plot used in the chart?
+-   What variables have been used in the chart?
+-   What can you say about the scale on X-axis?
+-   What can you say about prices of items that are available in *single
+    colour* versus those that are available in more than one colour?
+-   What is a good hypothesis to interpret the double-humped nature of
+    some of the curves?
+
+### IKEA Furniture -2
+
+https://github.com/dgrtwo/data-screencasts/blob/master/2020_11_03_ikea.Rmd
+
+```{r}
+#| eval: false
+library(ggridges)
+tt <- tt_load("2020-11-03")
+
+ikea <- tt$ikea 
+
+ikea_volume <- ikea %>%
+  select(-...1) %>%
+  mutate(price_usd = 0.27 * price,
+         short_description = str_squish(short_description)) %>%
+  add_count(category, name = "category_total") %>% 
+  mutate(category = glue("{ category } ({ category_total })"),
+         category = fct_reorder(category, price_usd),
+         volume_m3 = depth * height * width / 1e6) %>%
+  filter(!is.na(volume_m3),
+         volume_m3 >= .001) %>%
+  arrange(desc(volume_m3)) %>%
+  add_count(category, name = "category_total")
+
+ikea_volume %>%
+  mutate(category = fct_relevel(category, "Tables & desks")) %>%
+  lm(log2(price_usd) ~ log2(volume_m3) + category + other_colors, data = .) %>%
+  tidy(conf.int = TRUE) %>%
+  filter(term != "(Intercept)") %>%
+  mutate(term = ifelse(term == "log2(volume_m3)", "Item volume (doubling)", term),
+         term = str_remove(term, "^category")) %>%
+  mutate(term = fct_reorder(term, estimate)) %>%
+  ggplot(aes(estimate, term)) +
+  geom_point() +
+  geom_errorbarh(aes(xmin = conf.low, xmax = conf.high), height = .4) +
+  geom_vline(xintercept = 0, color = "red", lty = 2) +
+  labs(x = "Impact on Price (relative to Tables & desks)",
+       y = "",
+       title = "What objects are unusually expensive/inexpensive\n relative to volume?") +
+  theme_classic() -> p8
+
+p8
+ggsave(p8, filename = "figures/ikea-categories.png", device = ragg::agg_png, res = 300)
+```
+
+We fit a Linear Regression Model to IKEA furniture PRICE versus CATEGORY
+of furniture, the VOLUME(meter cubed) of the item, and if it is
+available in OTHER_COLORS. See formula below:
+
+model \<- lm(log2(Price) \~ log2(Volume_m3) + Category + Other_Colors,
+data = ikea) The model coefficients have been plotted in the Coefficient
+Plot shown.
+
+-   What chart type is used in the graph above?
+-   Which CATEGORY of furniture has the most impact on PRICE?
+-   Which predictor has the LEAST amount of uncertainty about its
+    influence? Justify.
+-   If you had a young family, would you go to IKEA for furniture? Why,
+    or why not?
+
+### Movies and Profits
+
+```{r}
+#| eval: false
+movie_profit_raw <- read_csv("https://raw.githubusercontent.com/rfordatascience/tidytuesday/master/data/2018/2018-10-23/movie_profit.csv")
+movie_profit_raw
+# Data cleaning
+movie_profit <- movie_profit_raw %>%
+  select(-...1) %>%
+  mutate(release_date = as.Date(parse_date_time(release_date, "%m!/%d/%Y"))) %>%
+  filter(release_date < "2018-01-01") %>%
+  arrange(desc(row_number())) %>%
+  distinct(movie, release_date, .keep_all = TRUE) %>%
+  mutate(distributor = fct_lump(distributor, 5)) %>%
+  filter(worldwide_gross > 0) %>%
+  mutate(profit_ratio = worldwide_gross / production_budget,
+         decade = 10 * floor(year(release_date) / 10)) 
+
+movie_profit %>%
+  group_by(genre, distributor) %>%
+  summarize(median_profit_ratio = median(profit_ratio)) %>%
+  arrange(desc(median_profit_ratio)) %>%
+  mutate(genre = fct_reorder(genre, median_profit_ratio)) %>%
+  ggplot(aes(genre, median_profit_ratio)) +
+  geom_col() +
+  labs(title = "Profits made by Film Distributors", subtitle = "Ratio of Profits to Budgets", caption = "Tidy Tuesday Oct 23, 2018") +
+  scale_y_continuous(labels = function(x) paste0(x, "X")) +
+  coord_flip() + 
+  facet_wrap(~ distributor) ->  p9
+
+p9
+ggsave(p9, filename = "figures/movie-profits-genre.png", device = ragg::agg_png, res = 300)
+
+```
+
+-   Identify the type of plot
+-   What are the variables used to plot this graph?
+-   If you were to invest in movie production ventures, which are the
+    two best genres that you might decide to invest in?
+-   Which R command might have been used to obtain the separate plots
+    for each distributor?
+-   If the original dataset had BUDGETS and PROFITS in separate columns,
+    what preprocessing might have been done to achieve this plot?
+
+## Section B: Short Essays..horrors!!
+
+### Women in the Workplace
+
+```{r}
+#| eval: false
+jobs_gender <- readr::read_csv("https://raw.githubusercontent.com/rfordatascience/tidytuesday/master/data/2019/2019-03-05/jobs_gender.csv")
+earnings_female <- readr::read_csv("https://raw.githubusercontent.com/rfordatascience/tidytuesday/master/data/2019/2019-03-05/earnings_female.csv") 
+employed_gender <- readr::read_csv("https://raw.githubusercontent.com/rfordatascience/tidytuesday/master/data/2019/2019-03-05/employed_gender.csv") 
+
+jobs_gender %>%
+  filter(year == 2016) %>%
+  filter(major_category == "Healthcare Practitioners and Technical") %>%
+  arrange(desc(wage_percent_of_male)) %>%
+  ggplot(aes(workers_female / total_workers,
+             total_earnings,
+             size = total_workers,
+             label = occupation)) +
+  geom_point() +
+  scale_size_continuous(range = c(1, 10)) +
+  labs(size = "Total # of workers",
+       x = "% of workforce reported as female",
+       y = "Median salary in the occupation") +
+  scale_x_continuous(labels = percent_format()) +
+  scale_y_continuous(labels = dollar_format()) +
+  expand_limits(y = 0)  ->  p10
+
+p10
+ggsave(p10, filename = "figures/women-workplace.png", device = ragg::agg_png, res = 300)
+
+```
+
+-   What kind of chart is used in the figure?
+-   What geometries have been used and to which variables have these
+    geometries been mapped?
+-   Based on this graph, do you think gender plays a role in salaries?
+    What is the trend you see?
+-   If SALARY, NO_OF_WORKERS, GENDER, OCCUPATION were available in the
+    original dataset, what pre-processing would have been necessary to
+    obtain this plot?
+
+### Student-Teacher Ratios
+
+```{r}
+#| eval: false
+student_ratio <- readr::read_csv("https://raw.githubusercontent.com/rfordatascience/tidytuesday/master/data/2019/2019-05-07/student_teacher_ratio.csv")
+
+student_teacher_ratio_2015 <- student_ratio %>%
+  filter(indicator == "Primary Education",
+         year == 2015,
+         !is.na(student_ratio))
+library(WDI)
+
+indicators_raw <- WDI(indicator = c("NY.GDP.PCAP.CD", "SP.POP.TOTL", "SE.ADT.LITR.ZS","SE.XPD.TOTL.GD.ZS","SE.SEC.NENR.MA", "SE.SEC.NENR.FE"),
+                      start = 2015, end = 2015, extra = TRUE) %>%
+  tbl_df()
+
+indicators <- indicators_raw %>%
+  select(country_code = iso3c,
+         region,
+         NY.GDP.PCAP.CD:SE.SEC.NENR.FE) %>%
+  mutate(country_code = as.character(country_code))
+
+student_teacher_ratio_2015 %>%
+  ggplot(aes(student_ratio)) +
+  geom_histogram() +
+  scale_x_log10()
+
+student_teacher_ratio_2015 %>%
+  inner_join(indicators, by = "country_code") %>%
+  arrange(desc(SP.POP.TOTL)) %>%
+  ggplot(aes(NY.GDP.PCAP.CD, student_ratio)) +
+  geom_point(aes(size = SP.POP.TOTL)) +
+  geom_text(aes(label = country), vjust = 1, hjust = 1, check_overlap = TRUE) +
+  scale_x_log10() +
+  scale_y_log10() +
+  scale_size_continuous(labels = scales::comma_format(), range = c(.25, 12)) +
+  labs(x = "GDP per capita",
+       y = "Student/teacher ratio in primary education",
+       title = "GDP per capita and Student/Teacher ratios across the World in 2015",
+       color = "Region",
+       size = "Population") -> p11
+p11
+ggsave(p11, filename = "figures/student-teacher.png", device = ragg::agg_png, res = 300)
+
+```
+
+-   What kind of chart is used in the figure?
+-   What geometries have been used and to which variables have these
+    geometries been mapped?
+-   What is the trend you see?
+-   If you were to fit a linear model to STUDENT_TEACHER_RATIO against
+    GDP_PER_CAPITA, what would be the approximate value of estimated the
+    SLOPE parameter?
+-   What would be the units of the SLOPE parameter?
+
+### The effect of Diets on BMI
+
+```{r}
+#| eval: false
+diet <- read_csv("data/Diet_R.csv")
+diet
+
+# BMI = weight (kilogramms) / height^2 (metres)
+
+diet %>% 
+  mutate(BMI_Change = (weight6weeks - pre.weight)/(Height/100)^2) %>%
+  mutate(Diet = as_factor(Diet)) %>% 
+  ggplot() + geom_boxplot(aes(x = Diet, y = BMI_Change, fill = Diet)) +
+  scale_fill_manual(values = c("grey", "grey60", "grey10"))-> p12
+p12
+ggsave(p12, filename = "figures/diet-anova.png", device = ragg::agg_png, res = 300)
+```
+
+The chart shows a change in the BMI ( Body Mass Index) of persons who
+were treated with different diets. Discuss what analysis would be
+suitable to decide if any of the diets was effective, and if so, which
+one. What assumptions would you need to check on before conducting the
+analysis?
+
+### Classes and Grades in University
+
+https://www.ncbi.nlm.nih.gov/pmc/articles/PMC5296382/
+
+```{r}
+#| eval: false
+library(ggprism)
+class_marks <- read_csv("data/class-marks.csv", 
+                 name_repair = ~ janitor::make_clean_names(., case =
+                                                             "big_camel")) %>% pivot_longer(cols = everything(), names_to = "class", values_to = "grades") %>% 
+  mutate(class = factor(class, labels = c("A", "B", "C")))
+class_marks
+
+class_marks %>% gf_boxplot(grades ~ class, fill = ~ class,
+                           title = "Course Grades in Three Classes/Sections") %>% 
+  gf_refine(scale_x_discrete(guide = "prism_bracket"),                                  scale_fill_manual(values = c("grey", "grey60", "grey30"))) -> p18
+
+p18
+ggsave(p18, filename = "figures/class-marks-anova.png", device = ragg::agg_png, res = 300)
+
+```
+
+Three Teachers teach the same course in three different
+classes/sections. Students complain to the Dean that the standards of
+grading are interpreted differently by each teacher. Using the chart
+above, what analysis would you perform to prove/disprove the students'
+allegation? What precautions would you take? Assume that the classes
+each have 30 students.
+
+### Home Loans and Ownership and Contingency Tables
+
+```{r}
+#| eval: false
+library(openintro)
+data("loans_full_schema", package = "openintro")
+
+loans_contingency <- loans_full_schema %>% 
+  group_by(homeownership,application_type) %>% 
+  summarise(count = n()) %>% 
+  pivot_wider(id_cols = application_type,
+              names_from = homeownership,
+              values_from = count) %>% 
+  janitor::adorn_totals(where = c("row", "col")) %>% 
+  as_tibble()
+loans_contingency
+stats::chisq.test(x = loans_full_schema$homeownership, y = loans_full_schema$application_type)
+
+myTable <- tableGrob(loans_contingency, 
+  rows = NULL, 
+  theme = ttheme_default(core = list(bg_params = list(fill = "grey99")))
+)
+grid.draw(myTable)
+
+```
+
+```{r}
+#| eval: false
+#| label: expected-contingency-loans
+loans_table <- tally(homeownership ~ application_type, data = loans_full_schema) 
+loans_table %>% addmargins()
+
+### Expected Contingency
+loans_expected <- loans_table * loans_table / ((prop.table(loans_table, margin = 2) * prop.table(loans_table, margin = 1)) * 10000)
+loans_expected <- 
+  loans_expected %>% as_tibble() %>% filter(!is.nan(n)) %>% 
+  pivot_wider(id_cols = application_type,
+              names_from = homeownership,
+              values_from = n)
+
+myTable <- tableGrob(loans_expected, 
+  rows = NULL, 
+  theme = ttheme_default(core = list(bg_params = list(fill = "grey99")))
+)
+grid.draw(myTable)
+```
+
+### Email Format and Spam
+
+```{r}
+#| eval: false
+library(openintro)
+data("email", package = "openintro")
+table(email$spam, email$format) %>% addmargins() # Contingency Table with margins
+email_contingency <- email %>% 
+  mutate(spam = factor(spam, levels = c("0", "1"), labels = c("No", "Yes")),
+         format = factor(format,  levels = c("0", "1"), labels = c("Text", "HTML"))) %>% 
+  group_by(spam,format) %>% 
+  summarise(count = n()) %>% 
+  pivot_wider(id_cols = spam,
+              names_from = format,
+              values_from = count) %>% 
+  janitor::adorn_totals(where = c("row", "col")) %>% 
+  as_tibble()
+email_contingency
+stats::chisq.test(x = email$format, y = email$spam)
+
+###
+email_table <- email %>% 
+  mutate(spam = factor(spam, levels = c("0", "1"), labels = c("No", "Yes")),
+         format = factor(format,  levels = c("0", "1"), labels = c("Text", "HTML"))) %>%
+  tally(spam ~ format, data = .) 
+email_table %>% addmargins()
+
+myTable <- tableGrob(email_contingency, 
+  rows = NULL, 
+  theme = ttheme_default(core = list(bg_params = list(fill = "grey99")))
+)
+grid.draw(myTable)
+
+
+### Expected Contingency
+email_expected <- email_table * email_table / ((prop.table(email_table, margin = 2) * prop.table(email_table, margin = 1)) * 3921)
+
+email_expected <- email_expected %>% addmargins() %>% as_tibble() %>% 
+  pivot_wider(id_cols = spam,
+              names_from = format,
+              values_from = n)
+
+myTable <- tableGrob(email_expected, 
+  rows = NULL, 
+  theme = ttheme_default(core = list(bg_params = list(fill = "grey99")))
+)
+grid.draw(myTable)
+```
+
+### Book Subjects and Prices
+
+```{r}
+#| eval: false
+library(resampledata3)
+data("BookPrices")
+BookPrices
+BookPrices %>% group_by(Area) %>% summarize(mean_price = mean(Price))
+obs_diff <- diffmean(Price ~ Area, data = BookPrices)
+obs_diff
+
+null_dist_area <- 
+  do(2999) * diffmean(data = BookPrices, Price ~ shuffle(Area))
+#null_dist_area
+
+
+gf_histogram(data = null_dist_area, ~ diffmean, bins = 25,
+             title = "Price Difference between Academic Books",
+             subtitle = "Subject Area: Maths+Science vs Social Sciences",
+             caption = "Data: resample3 package") %>%
+  gf_vline(xintercept = obs_diff, colour = "black") %>% 
+  gf_labs(x = "Difference in Mean Prices (USD)",
+          y = "Counts (with Permutation on Subject Area)") %>%
+  gf_label(300 ~ -55, label = "Observed Difference") %>% 
+  gf_theme(theme_classic()) -> p20
+
+gf_ecdf(data = null_dist_area, ~ diffmean,
+             title = "Price Difference between Academic Books",
+             subtitle = "Maths+Science vs Social Sciences",
+             caption = "Data: resample3 package") %>%
+  gf_vline(xintercept = obs_diff, colour = "black")  %>% 
+    gf_labs(x = "Difference in Mean Prices (USD)",
+          y = " Cumulative Distribution (with Permutation on Subject Area)") %>%
+    gf_label(0.1 ~ -55, label = "Observed Difference") %>% 
+  gf_theme(theme_classic()) -> p21
+
+p20
+ggsave(p20, filename = "figures/permtest-books-1.png", device = ragg::agg_png, res = 300)
+
+p21
+ggsave(p21, filename = "figures/permtest-books-2.png", device = ragg::agg_png, res = 300)
+
+prop1(~ diffmean <= obs_diff, data = null_dist_area)
+
+```
+
+### Cafeteria Meals and Protein Intake
+
+```{r}
+#| eval: false
+library(resampledata3)
+data("Cafeteria")
+Cafeteria
+Cafeteria %>% group_by(Type) %>% summarize(mean_price = mean(Protein))
+obs_diff <- diffmean(Protein ~ Type, data = Cafeteria)
+obs_diff
+
+null_dist_Type <- 
+  do(2999) * diffmean(data = Cafeteria, Protein ~ shuffle(Type))
+null_dist_Type
+
+
+gf_histogram(data = null_dist_Type, ~ diffmean, bins = 25,
+             title = "Difference in Protein Content",
+             subtitle = "Meal Type: Meat vs Vegetarian",
+             caption = "Data: resample3 package") %>%
+  gf_vline(xintercept = obs_diff, colour = "black") %>% 
+  gf_labs(x = "Difference in Protein Content (gms)",
+          y = "Counts (with Permutation on Meal Type)") %>%
+  gf_label(300 ~ - 12, label = "Observed Difference") %>% 
+  gf_refine(xlim(c(-20, 20))) %>% 
+  gf_theme(theme_classic()) -> p22
+
+gf_ecdf(data = null_dist_Type, ~ diffmean,
+             title = "Difference in Protein Content",
+             subtitle = "Meal Type: Meat vs Vegetarian",
+             caption = "Data: resample3 package") %>%
+  gf_vline(xintercept = obs_diff, colour = "black")  %>% 
+    gf_labs(x = "Difference in Protein Content (gms)",
+          y = " Cumulative Distribution (with Permutation on Meal Type)") %>%
+    gf_label(0.1 ~ - 12, label = "Observed Difference") %>% 
+  gf_refine(xlim(c(-20, 20))) %>% 
+  gf_theme(theme_classic()) -> p23
+
+p22
+ggsave(p22, filename = "figures/permtest-meals-1.png", device = ragg::agg_png, res = 300)
+
+p23
+ggsave(p23, filename = "figures/permtest-meals-2.png", device = ragg::agg_png, res = 300)
+
+prop1(~ diffmean <= obs_diff, data = null_dist_Type)
+
+```
+
+### Marketing Campaigns
+
+```{r}
+#| eval: false
+library(datarium)
+data("marketing", package = "datarium")
+marketing
+ggpairs(marketing, progress = FALSE,
+        lower = list(continuous = wrap("smooth", alpha = 0.2)))-> p13
+head(marketing,3) -> p14
+myTable <- tableGrob(
+  head(marketing), 
+  rows = NULL, 
+  theme = ttheme_default(core = list(bg_params = list(fill = "grey99")))
+)
+grid.draw(myTable)
+
+p13
+ggsave(p13, filename = "figures/ggpairs-mktg.png", device = ragg::agg_png, res = 300)
+
+```
+
+You are asked to fit a linear model for Sales against ad campaigns on
+YouTube, FaceBook, and newspaper. Examine the plot attached and discuss
+how you would attack this problem. Would your model be simple or
+multiple regression? What precautions would you have to take? Discuss if
+you would need to make your model complex, and if so, how.
+
+### Regression Models for Marketing Campaigns
+
+```{r}
+#| eval: false
+m1 <- lm(sales ~ newspaper, data = marketing)
+m2 <- lm(sales ~ newspaper + facebook, data = marketing)
+m3 <- lm(sales ~ newspaper + youtube, data = marketing)
+m4 <- lm(sales ~ youtube + facebook, data = marketing)
+m5 <- lm(sales ~ newspaper + youtube + facebook, data = marketing)
+
+m1_tidy <- m1 %>% broom::tidy()
+m2_tidy <- m2 %>% broom::tidy()
+m3_tidy <- m3 %>% broom::tidy()
+m4_tidy <- m4 %>% broom::tidy()
+m5_tidy <- m5 %>% broom::tidy()
+all_tidy <- rbind(m1_tidy, m2_tidy, m3_tidy, m4_tidy, m5_tidy)
+
+m1_glance <- m1 %>% broom::glance()
+m2_glance <- m2 %>% broom::glance()
+m3_glance <- m3 %>% broom::glance()
+m4_glance <- m4 %>% broom::glance()
+m5_glance <- m5 %>% broom::glance()
+all_glance <- rbind(m1_glance, m2_glance, m3_glance, m4_glance, m5_glance)
+
+all_tidy
+all_glance
+
+all_glance %>% 
+  # Plot r.squared vs predictor count
+  gf_point(r.squared ~ 1:5, size = 3.5) %>%
+  gf_line(ylab = "R.Squared",
+          xlab = "Predictors in the Linear Model",
+          title = "Linear Regression Models for Sales",
+          subtitle = "Newspaper(NP), Facebook(FB), and You Tube(YT)",
+          caption = "R Package datarium") %>%
+  gf_refine(annotate("text",x = 4, y = 0.35, label = "M5: Sales ~ 3.52 - 0.001*NP + 0.045*YT + 0.188*FB\n M4: Sales ~ 3.53 + 0.0458 * YT + 0.188*FB\n M3: Sales ~ 6.93 + 0.0442*NP + 0.0469*YT\n M2: Sales ~ 11.0 + 0.00664*NP + 0.199*FB\n M1: Sales ~ 14.8 + 0.0547*NP")) %>% 
+  gf_refine(scale_x_discrete(limits = c(1:5),
+                             labels = c("NP", "NP and FB", "NP and YT",
+                                        "YT and FB", "NP, YT, and FB"))) %>%
+  gf_label(label = "M5", 0.8~5) %>% 
+  gf_label(label = "M4", 0.8~4) %>%   
+  gf_label(label = "M3", 0.75~3) %>%   
+  gf_label(label = "M2", 0.45~2) %>%   
+  gf_label(label = "M1", 0.15~1) %>% 
+  gf_theme(theme_classic()) -> p15
+p15
+
+head(marketing,3)
+ggsave(p15, filename = "figures/mktg-models-rsq.png", device = ragg::agg_png, res = 300)
+
+```
+
+### Penn Parsed Corpora of Historical English
+
+```{r}
+pdat  <- base::readRDS(url("https://slcladal.github.io/data/pvd.rda", "rb"))
+
+```
+
+### Product Evolution
+
+Look at the way cellphones have changed over the last 20 years. There
+are many features that have been added, like the touchscreen and apps,
+and some have disappeared such as the external antenna. What chart would
+you use to discuss these trends? Discuss, describe, and draw a sketch.
+
+### Distortion is good
+
+![](outputs/India_cartogram.png)
+
+Discuss the pros and cons of using this distorted map of India as a
+Descriptive Data Visualization. What could it show? What sort of data
+might lie underneath and how may it have been plotted? Code is optional!
+
+### Karate-tidygraph
+
+```{r}
+#| eval: false
+data(karate)
+set.seed(1234)
+l <- layout.graphopt(karate)
+karate_plot <- karate %>% 
+  as_tbl_graph() %>% # to access nodes and edges in tidygraph
+  
+  # parameters to decorate the nodes
+  activate(nodes) %>% 
+  mutate(node_shape = if_else(V(karate)$label %in% c("H", "A"), 1, 2),
+         node_size = 4*sqrt(igraph::degree(karate)),
+         Faction = as_factor(Faction),
+         node_shape = as_factor(node_shape)
+         ) %>% 
+  
+  # parameters to decorate the edges
+  activate(edges) %>%
+  mutate(edge_color =
+           case_when(
+             edge_is_between(from = V(karate)$Faction == 1,
+                             to = V(karate)$Faction == 2,
+                             ignore_dir = TRUE) ~ 1L,
+             edge_is_between(from = V(karate)$Faction == 1,
+                             to = V(karate)$Faction == 1,
+                             ignore_dir = TRUE) ~ 2L,
+             edge_is_between(from = V(karate)$Faction == 2,
+                             to = V(karate)$Faction == 2,
+                             ignore_dir = TRUE) ~ 3L,
+             TRUE ~ 4L),
+         edge_color = as_factor(edge_color)) %>%
+  
+  # now plot it
+  ggraph(., layout = l) +
+  geom_edge_link0(aes(width = weight, 
+                      color = edge_color,
+                      #edge_linetype = edge_color
+                      )) + 
+  geom_node_point(aes(size = node_size,
+                      fill = Faction,
+                      shape = node_shape
+                      )) +
+  geom_node_text(aes(label = 
+                       sub("Actor","",V(karate)$name)),repel = TRUE) + 
+  scale_size(range = c(2, 10)) +
+  scale_colour_manual(values = c("red", "dodgerblue"),aesthetics = c("colour", "fill") ) +
+  scale_shape_manual(values = c(21, 22)) +
+  scale_edge_width(range = c(0.1, 4)) +
+  #scale_edge_linetype(c("longdash", "solid", "dotted")) +
+  scale_edge_colour_manual(values = c("grey", "red", "dodgerblue", "grey")) +
+  theme_graph() + 
+  theme(legend.position = "none")
+karate_plot
+# 
+# png("outputs/karate.png", width=780,height=380,bg = "white")
+# grid.table(karate_plot)
+
+```
+
+The picture shows a network diagram of the members of a club. Write a
+short story of the members of the club and their affairs, based on the
+geometries (shapes, links, titles).
+
+### Grey's Anatomy
+
+```{r 1.Read-greys-anatomy-data, message=FALSE, include=FALSE}
+#| eval: false
+grey_nodes <- read_csv("data/data2/grey_nodes.csv")
+grey_edges <- read_csv("data/data2/grey_edges.csv")
+
+
+# grey_nodes <- read_delim("./Data/greys-nodes.csv", delim = ";")
+# ger_edges <- read_delim("~/Downloads/grey-edges.csv", 
+#     delim = ";", escape_double = FALSE, trim_ws = TRUE)
+grey_nodes
+grey_edges
+
+```
+
+```{r 2.Create-greys-anatomy-graph-object}
+#| eval: false
+ga <- tbl_graph(nodes = grey_nodes, 
+                edges = grey_edges, 
+                directed = FALSE)
+ga
+
+```
+
+```{r Coord-Diagram-circular}
+#| eval: false
+# Coord diagram, circular
+ggraph(ga, layout = "linear", circular = TRUE) + # Seems weird? ;-D
+  geom_edge_arc(aes(width = weight), alpha = 0.8) + 
+  scale_edge_width(range = c(0.2, 2)) +
+  geom_node_point(size = 4,colour = "red") + 
+  geom_node_text(aes(label = name),repel = TRUE, 
+                 size = 3,
+                 max.overlaps = 20) +
+  labs(edge_width = "Weight") +
+  
+  theme_graph()+
+  theme(legend.position = "right", 
+        aspect.ratio = 1)
+
+```
+
+The picture shows a network diagram of the characters in popular TV
+show, Grey's Anatomy. Write a short story of the members of this litle
+world and their affairs, based on the geometries (shapes, links,
+titles).
+
+### Titanic
+
+![](outputs/titanic.png)
+
+Write a short description of the well known events depicted by this
+diagram. Make specific references to the geometries shown in the figure
+and interpret in your description.
+
+### Cholera in Soho
+
+```{r teaser,echo=FALSE}
+#| eval: false
+# SnowMap(polygons = TRUE)
+# Write some comments on this code and what it seems to be creating
+# Are there "layers" in this visualization?
+library(sf)
+library(sfheaders)
+library(ggformula)
+library(HistData)
+
+data(Snow.deaths)
+data(Snow.pumps)
+data(Snow.streets)
+data(Snow.polygons)
+data(Snow.dates)
+
+## Convert to spatial format using sfheaders
+snow_streets_sf <- Snow.streets %>% 
+  sfheaders::sf_linestring(., linestring_id = "street",x = "x", y = "y")
+
+#####
+snow_polygons_sf <- Snow.polygons %>% 
+  map_df(.f = ~ sfheaders::sf_linestring(.x), c(x = .x$"x", y = .x$"y", keep = TRUE))
+
+#####
+snow_pumps_sf <- Snow.pumps %>% sfheaders::sf_point(x = "x", y = "y", keep = TRUE)
+
+####
+snow_deaths_sf <- Snow.deaths2 %>% sfheaders::sf_point(x = "x", y = "y", keep = TRUE)
+
+### Now to plot it
+
+snow <- ggplot() + 
+  
+    
+  geom_density_2d_filled(data = Snow.deaths2, aes(x = x, y = y), 
+                         colour = "black", show.legend = FALSE, bins = 9, alpha = 0.5) + 
+  
+  geom_sf(data = snow_polygons_sf, color = "brown",fill = "white",
+          linewidth = 1) +
+  
+  geom_sf(data = snow_streets_sf, color = "grey") +
+  
+  geom_sf(data = snow_pumps_sf, fill = "blue", color = "blue",
+          shape = 17, size = 6) +
+  
+  geom_sf(data = snow_deaths_sf, shape = 22, fill = "red", 
+            colour = "red", size = 1, alpha = 0.3) + 
+  
+  geom_sf_text(data = snow_pumps_sf,aes(label = label),
+               nudge_x = 0.5, nudge_y = -0.75) + 
+  
+
+  
+  # stat_density_2d_filled(data = Snow.deaths2, aes(x = x, y = y), bins = 8, contour_var = "ndensity") +
+  
+  scale_fill_brewer(palette = "Greens", direction = 1,type = "qual") + theme_void()
+snow
+# png("outputs/snow.png", width=780,height=380,bg = "white")
+# grid.table(snow)
+
+```
+
+Cholera broke out in the Broad Street area of central London on the
+evening of August 31, 1854. John Snow, who had investigated earlier
+epidemics, suspected that the water from a community pump-well at Broad
+and Cambridge Streets was contaminated. Write a brief story in how the
+visual shown could have lead him to conclude which pump-well was giving
+contaminated water. Explain the geometries used.
+
+### Nightingale's famous Coxcomb or Rose Plot
+
+```{r nightingale, echo=FALSE,message=FALSE}
+#| eval: false
+regime_date <- as_date("1855-04-01")
+Nightingale %>% 
+  select(Date, Month, Year, Disease.rate, Wounds.rate, Other.rate) %>% 
+  pivot_longer(names_to = "Cause", values_to = "Deaths", cols = dplyr::contains("rate")) %>% 
+  separate_wider_delim(cols = Cause,delim = ".",names = c("Cause"),too_many = "drop") %>% 
+  mutate("Regime" = if_else(interval(Date, regime_date) %/% months(1) <= 0, "After", "Before"),
+         Date = as_date(Date)) %>% 
+ggplot(., aes(x = Date, y = Deaths, fill = Cause)) +
+geom_col() +
+scale_x_date(NULL,
+breaks = scales::breaks_width("2 months"),
+labels = scales::label_date_short()) +
+    # set scale so area ~ Deaths
+    scale_y_sqrt() +
+  
+  # A coxcomb plot = bar chart + polar coordinates
+    coord_polar(start = 3 * pi / 2) + 
+
+    ggtitle("Causes of Mortality in the Army in the East") +
+    xlab("") + facet_grid(~ Regime) + 
+  theme(axis.text = element_text(size = 6), 
+      axis.title = element_text(size = 8),                          legend.text = element_text(size = 6)) +
+    theme_minimal()
+
+
+```
+
+Shown in the figure is the famous Florence Nightingale Rose Plot showing
+deaths during the Crimean War 1854-55. Interpret this figure, and
+discuss the deaths and timelines, and if the sanitary measures
+introduced by Nightingale might have worked.
+
+### Tree Diagram
+
+![](outputs/penguins.png)
+
+The figure shows how penguins may be classified into different species.
+Discuss the diagram and how it works, what variables it uses to classify
+penguins and with what accuracy.
+
+## Section C: Case Study
+
+-   Description of a Dataset
+-   BW Picture of Detailed Visualization
+-   Write Code
+-   Write Insights
+-   Write Further Action/ Analysis
+
+### Apartments for Rent
+
+```{r}
+#| eval: false
+rentals <- read_delim("data/apartments_for_rent_classified_10K.csv",delim = ";")
+rentals <- rentals %>% janitor::clean_names(case = "snake")
+rentals_inspect <- mosaic::inspect(rentals)
+
+myTable <- tableGrob(rentals_inspect$categorical, 
+  rows = NULL, 
+  theme = ttheme_default(core = list(bg_params = list(fill = "grey99")))
+)
+grid.draw(myTable)
+
+myTable2 <- tableGrob(rentals_inspect$quantitative, 
+  rows = NULL, 
+  theme = ttheme_default(core = list(bg_params = list(fill = "grey99")))
+)
+grid.draw(myTable2)
+
+```
+
+This is a dataset of classified for apartments for rent in USA. The
+dataset contains of 10000 rows and of 22 columns
+
+1.  id = unique identifier of apartment
+2.  category = category of classified ad
+3.  title = title text of apartment
+4.  body = body text of apartment
+5.  amenities = like AC, basketball,cable, gym, internet access, pool,
+    refrigerator etc.
+6.  bathrooms = number of bathrooms
+7.  bedrooms = number of bedrooms
+8.  currency = price in current
+9.  fee = fee for the classified ad
+10. has_photo = photo of apartment
+11. pets_allowed = what pets are allowed dogs/cats etc.
+12. price = rental price of apartment
+13. price_display = price converted into display for reader
+14. price_type = price in USD
+15. square_feet = size of the apartment
+16. address = where the apartment is located
+17. cityname = where the apartment is located
+18. state = where the apartment is located
+19. latitude = where the apartment is located
+20. longitude = where the apartment is located
+21. source = origin of classified ad
+22. time = when classified ad was created
+
+### Battery Life
+
+```{r}
+#| eval: false
+battery <- read_csv("data/Battery_RUL.csv")
+battery_inspect <- inspect(battery)
+
+myTable3 <- tableGrob(battery_inspect$quantitative, 
+  rows = NULL, 
+  theme = ttheme_default(core = list(bg_params = list(fill = "grey99")))
+)
+grid.draw(myTable3)
+```
+
+### Household Energy Usage
+
+```{r}
+#| eval: false
+library(flextable)
+# https://www.r-bloggers.com/2019/05/save-a-flextable-as-an-image/
+
+energy <- read_delim("data/household_power_consumption.txt", delim = ";")
+energy_head <- energy %>% select(Date, Time, starts_with("Global")) %>%  head()
+energy_inspect <-  energy %>% select(-c(Date, Time)) %>% inspect()
+
+png("figures/energy-table-1.png", width=780,height=380,bg = "white")
+grid.table(energy_head)
+
+png("figures/energy-table-2.png", width=780,height=380,bg = "white")
+grid.table(energy_inspect$categorical)
+
+
+png("figures/energy-table-3.png", width=780,height=480,bg = "white")
+grid.table(energy_inspect$quantitative)
+
+
+```
+
+### Concrete Strength
+
+https://archive.ics.uci.edu/dataset/760/multivariate+gait+data\>
+
+Concrete is the most important material in civil engineering. The
+concrete compressive strength is a highly nonlinear function of age and
+ingredients. These ingredients include cement, blast furnace slag, fly
+ash, water, superplasticizer, coarse aggregate, and fine aggregate.
+
+Name -- Data Type -- Measurement -- Description
+
+Cement (component 1) -- quantitative -- kg in a m3 mixture -- Input
+Variable Blast Furnace Slag (component 2) -- quantitative -- kg in a m3
+mixture -- Input Variable Fly Ash (component 3) -- quantitative -- kg in
+a m3 mixture -- Input Variable Water (component 4) -- quantitative -- kg
+in a m3 mixture -- Input Variable Superplasticizer (component 5) --
+quantitative -- kg in a m3 mixture -- Input Variable Coarse Aggregate
+(component 6) -- quantitative -- kg in a m3 mixture -- Input Variable
+Fine Aggregate (component 7) -- quantitative -- kg in a m3 mixture --
+Input Variable Age -- quantitative -- Day (1\~365) -- Input Variable
+Concrete compressive strength -- quantitative -- MPa -- Output Variable
+
+```{r}
+#| eval: false
+# Install and load required packages
+
+# Your text data
+text_data <- "Name -- Data Type -- Measurement -- Description
+Cement (component 1) -- quantitative -- kg in a m3 mixture -- Input Variable
+Blast Furnace Slag (component 2) -- quantitative -- kg in a m3 mixture -- Input Variable
+Fly Ash (component 3) -- quantitative  -- kg in a m3 mixture -- Input Variable
+Water  (component 4) -- quantitative  -- kg in a m3 mixture -- Input Variable
+Superplasticizer (component 5) -- quantitative -- kg in a m3 mixture -- Input Variable
+Coarse Aggregate  (component 6) -- quantitative -- kg in a m3 mixture -- Input Variable
+Fine Aggregate (component 7)	 -- quantitative  -- kg in a m3 mixture -- Input Variable
+Age -- quantitative  -- Day (1~365) -- Input Variable
+Concrete compressive strength -- quantitative -- MPa -- Output Variable"
+
+# Split the text into lines and then split each line by "--"
+data_lines <- strsplit(text_data, "\n")[[1]]
+data_split <- strsplit(data_lines, " -- ")
+
+# Create a data frame from the split data
+data_df <- as.data.frame(data_split, stringsAsFactors = FALSE)
+
+# Set the first row as column names
+colnames(data_df) <- data_df[1, ]
+data_df <- data_df[-1, ]
+
+# Print the resulting table
+data_table <- print(data_df)
+data_table
+png("figures/concrete-table-1.png", width=1080,height=380,bg = "white")
+grid.table(data_table)
+```
+
+```{r}
+#| eval: false
+library(psych)
+
+concrete <- readxl::read_excel("data/Concrete_Data.xls") %>% janitor::clean_names()
+concrete
+
+concrete_inspect <- inspect(concrete)
+png("figures/concrete-table-1.png", width=980,height=380,bg = "white")
+grid.table(concrete_inspect$quantitative)
+
+```
+
+```{r}
+#| eval: false
+GGally::ggpairs(concrete, title = "Pairs Plot #1", progress = FALSE)
+
+col<- colorRampPalette(c("black", "white"))(10)
+cor(concrete) %>% as_tibble()
+
+cor(concrete) %>% 
+corrplot::corrplot.mixed(order="hclust", is.corr = TRUE,
+                   tl.col="black", tl.srt=45, #Text label color and rotation
+                   tl.cex = 0.8, tl.pos = "lt", lower.col=col, upper.col = col)
+
+ggcorr(concrete, low = "black", mid = "grey", high = "white",name = "Correlation Score")
+
+psych::corPlot(concrete,stars = TRUE,colors = FALSE,cex = 0.8,xsrt = 90, min.length = 6)
+```
+
+### Energy Efficiency
+
+[Sci-Hub \| Accurate quantitative estimation of energy performance of
+residential buildings using statistical machine learning tools. Energy
+and Buildings, 49, 560--567 \|
+10.1016/j.enbuild.2012.03.003](https://sci-hub.se/https://doi.org/10.1016/j.enbuild.2012.03.003)
+
+Consider a dataset documenting energy analysis using different building
+shapes. The buildings differ with respect to the glazing area, the
+glazing area distribution, and the orientation, amongst other
+parameters. As functions of the afore-mentioned characteristics, there
+are 768 building shapes in the dataset. The dataset contains eight
+attributes (or features, denoted by X1\...X8) and two responses (or
+outcomes, denoted by y1 and y2). The aim is to use the eight features to
+predict each of the two responses.
+
+![](outputs/building.png)
+
+Q1. Discuss the possible correlation of each of the X-variables with the
+two y-variables: whether the correlation is positive or negative, large
+or small in magnitude. Justify your inferences in each case. Write
+sample R code to show these correlations.
+
+Q2. Which of the x-variables would be strongly correlated between
+themselves? Would the correlation be positive or negative? Justify.
+Write sample R code to show these correlations.
+
+Q3. What other graphs would you plot with this data? Define your graphs
+and the choice of variables in each case, and create skeleton R code
+with ggformula. What Question would each graph answer for you? Why is
+that Question important?
+
+### Transit Costs Case Study
+
+```{r}
+#| eval: false
+#| label: Images for Case Study 2
+#| message: false
+#| cache: true
+
+tuesdata <- tidytuesdayR::tt_load(2021, week = 2)
+transit_cost <- tuesdata$transit_cost
+dim(transit_cost)
+head(transit_cost)
+transit_inspect <- mosaic::inspect(transit_cost)
+
+png("outputs/output3.png", width=780,height=380,bg = "white")
+grid.table(transit_inspect$categorical)
+
+png("outputs/output4.png", width=780,height=480,bg = "white")
+grid.table(transit_inspect$quantitative)
+names(transit_cost)
+```
+
+Why do transit-infrastructure projects in New York cost 20 times more on
+a per kilometer basis than in Seoul? We investigate this question across
+hundreds of transit projects from around the world. Here is a
+description of a database that spans more than 50 countries and totals
+more than 11,000 km of urban rail built since the late 1990s.
+
+![](outputs/output3.png)
+
+![](outputs/output4.png)
+
+Q.1 What is noticeably wrong with the data? How does it affect your
+analysis? How would you rectify that? Write skeleton code to show how
+you would do this in R.
+
+Q2. Identify the independent/measured variables, and the
+target/predicted variable. Discuss the correlation of each of the
+independent variables with the dependent one: whether the correlation is
+positive or negative, large or small in magnitude. Justify your
+inferences in each case. Write sample R code to obtain these
+correlations.
+
+Q3. What other graphs would you plot with this data? Define your graphs
+and the choice of variables in each case, and create skeleton R code
+with ggformula. What Question would each graph answer for you? Why is
+that Question important?
+
+## Datasets
+
+1.  "Online Retail" dataset: This dataset contains transactional data
+    from an online retailer, including information on customers,
+    products, and sales. You can download the dataset from the UCI
+    Machine Learning Repository using the following link:
+    <https://archive.ics.uci.edu/ml/datasets/Online+Retail>.
+
+2.  "Bank Marketing" dataset: This dataset contains information on
+    various attributes of customers in a banking context, as well as
+    their corresponding responses to marketing campaigns (yes or no).
+    You can download the dataset from the UCI Machine Learning
+    Repository using the following link:
+    <https://archive.ics.uci.edu/ml/datasets/Bank+Marketing>.
+
+3.  "Airbnb" dataset: This dataset contains information on various
+    attributes of Airbnb listings in several cities, as well as their
+    corresponding rental prices. You can download the dataset from the
+    Inside Airbnb website using the following link:
+    <http://insideairbnb.com/get-the-data.html>.
+
+4.  "Credit Card Fraud Detection" dataset: This dataset contains credit
+    card transactions labeled as either fraudulent or non-fraudulent.
+    You can download the dataset from the Kaggle website using the
+    following link: <https://www.kaggle.com/mlg-ulb/creditcardfraud>.
+
+5.  "Human Resources Analytics" dataset: This dataset contains
+    information on various attributes of employees in a company, as well
+    as their corresponding employee retention status. You can download
+    the dataset from the Kaggle website using the following link:
+    <https://www.kaggle.com/ludobenistant/hr-analytics>.
+
+6.  "Churn Analysis" dataset: This dataset contains information on
+    various attributes of customers in a telecom company, as well as
+    their corresponding churn status. You can download the dataset from
+    the Kaggle website using the following link:
+    <https://www.kaggle.com/becksddf/churn-in-telecoms-dataset>.
+
+7.  "Marketing Analytics" dataset: This dataset contains information on
+    various attributes of customers in a marketing context, as well as
+    their corresponding purchase behavior. You can download the dataset
+    from the Kaggle website using the following link:
+    <https://www.kaggle.com/pankajjsh06/ibm-watson-marketing-customer-value-data>.
+
+8.  "Customer Segmentation" dataset: This dataset contains customer
+    transactional data from an online grocery store, and can be used for
+    segmentation analysis. You can download the dataset from the UCI
+    Machine Learning Repository using the following link:
+    <https://archive.ics.uci.edu/ml/datasets/Online+Retail+II>.
+
+9.  "Sales Analytics" dataset: This dataset contains information on
+    various attributes of sales transactions in a retail context,
+    including customer demographics, product attributes, and sales
+    figures. You can download the dataset from the Kaggle website using
+    the following link:
+    <https://www.kaggle.com/kyanyoga/sample-sales-data>.
+
+10. "Stock Price Prediction" dataset: This dataset contains historical
+    stock prices for a variety of companies, and can be used to predict
+    future prices. You can download the dataset from the Kaggle website
+    using the following link:
+    <https://www.kaggle.com/borismarjanovic/price-volume-data-for-all-us-stocks-etfs>.
+
+11. "Titanic" dataset: This dataset contains information on passengers
+    aboard the Titanic, including demographic information and survival
+    status. You can download the dataset from the Kaggle website using
+    the following link: <https://www.kaggle.com/c/titanic>.
+
+12. "Boston Housing" dataset: This dataset contains information on
+    various attributes of houses in Boston, as well as their
+    corresponding median values. You can load the dataset directly in R
+    using the following code: `data(boston)`.
+
+13. "Breast Cancer Wisconsin" dataset: This dataset contains information
+    on various characteristics of breast cancer cells, as well as their
+    corresponding diagnoses (benign or malignant). You can load the
+    dataset directly in R using the following code:
+    `data(wdbc, package = "mclust")`.
+
+14. "Abalone" dataset: This dataset contains information on various
+    physical measurements of abalone, as well as their corresponding
+    ages. You can download the dataset from the UCI Machine Learning
+    Repository using the following link:
+    <https://archive.ics.uci.edu/ml/datasets/Abalone>.
+
+15. "Heart Disease" dataset: This dataset contains information on
+    various risk factors for heart disease, as well as their
+    corresponding diagnoses (presence or absence of heart disease). You
+    can download the dataset from the UCI Machine Learning Repository
+    using the following link:
+    <https://archive.ics.uci.edu/ml/datasets/Heart+Disease>.
+
+16. "Mushroom" dataset: This dataset contains information on various
+    characteristics of mushrooms, as well as their corresponding
+    edibility. You can download the dataset from the UCI Machine
+    Learning Repository using the following link:
+    <https://archive.ics.uci.edu/ml/datasets/Mushroom>.
+
+17. "Wine" dataset: This dataset contains information on various
+    physicochemical properties of wines from three different cultivars,
+    as well as their corresponding cultivars. You can load the dataset
+    directly in R using the following code: `data(wine)`.
+
+18. "Fashion MNIST" dataset: This dataset contains images of various
+    types of clothing, as well as their corresponding labels. You can
+    download the dataset from the Kaggle website using the following
+    link: <https://www.kaggle.com/zalando-research/fashionmnist>.
+
+19. "Car Evaluation" dataset: This dataset contains information on
+    various attributes of cars, as well as their corresponding
+    evaluations (unacceptable, acceptable, good, or very good). You can
+    download the dataset from the UCI Machine Learning Repository using
+    the following link:
+    <https://archive.ics.uci.edu/ml/datasets/Car+Evaluation>.
+
+20. "Cervical Cancer" dataset: This dataset contains information on
+    various risk factors for cervical cancer, as well as their
+    corresponding diagnoses (presence or absence of cervical cancer).
+    You can download the dataset from the UCI Machine Learning
+    Repository using the following link:
+    <https://archive.ics.uci.edu/ml/datasets/Cervical+cancer+%28Risk+Factors%29>.
+
+21. "Forest Fires" dataset: This dataset contains information on various
+    meteorological and other factors that contribute to forest fires, as
+    well as their corresponding burned area. You can download the
+    dataset from the UCI Machine Learning Repository using the following
+    link: <https://archive.ics.uci.edu/ml/datasets/Forest+Fires>.
+
+22. "Concrete Compressive Strength" dataset: This dataset contains
+    information on various factors that contribute to the compressive
+    strength of concrete, as well as their corresponding strength
+    values. You can download the dataset from the UCI Machine Learning
+    Repository using the following link: <https://archive.ics>
+
+23. The "Online News Popularity" dataset, which is available on the UCI
+    Machine Learning Repository. This dataset contains information about
+    articles published by Mashable, a popular online news website, and
+    includes features such as the article's title, text, and number of
+    images and videos, as well as the article's popularity (measured by
+    the number of shares on social media). To download the dataset in R,
+    you can use the following url:
+    <https://archive.ics.uci.edu/ml/machine-learning-databases/00332/OnlineNewsPopularity.zip>
+
+## Tasks
+
+1\. Exploratory data analysis: Explore the dataset using various
+visualization techniques in R / Radiant / Orange (e.g., histograms,
+boxplots, scatterplots, etc.). Identify any potential outliers, missing
+data, or other data quality issues. Summarize the main characteristics
+of the dataset.
+
+2.  Statistical model development: Choose a response variable of
+    interest (e.g., wine quality, marketing campaign outcome, iris
+    species) and build a linear regression model to predict this
+    variable based on the other variables in the dataset. Evaluate the
+    performance of the model using appropriate metrics (e.g., mean
+    squared error, R-squared, etc.). Discuss the strengths and
+    limitations of the model.
+
+3.  Basic ML algorithms: Choose a response variable of interest (e.g.,
+    wine quality, marketing campaign outcome, iris species) and build a
+    classification model using a basic ML algorithm in R (e.g., decision
+    tree and random forests.). Evaluate the performance of the model
+    using appropriate metrics (e.g., accuracy, precision, recall,
+    F1-score, etc.). Discuss the strengths and limitations of the model.

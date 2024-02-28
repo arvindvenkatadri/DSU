@@ -1,0 +1,1504 @@
+---
+title: "QP3"
+format: html
+date: 28/Aug/2023
+date-modified: "`r Sys.Date()`"
+number-sections: true
+number-depth: 4
+---
+
+```{r}
+#| label: setup
+#| include: false
+#| message: false
+#| warning: false
+
+library(tidyverse)
+library(mosaic)
+library(janitor)
+library(glue)
+library(broom)
+library(skimr)
+
+# Data, fake and real
+library(tidytuesdayR)
+library(regressinator)
+library(charlatan)
+library(holodeck)
+library(wakefield) # Fake data with many types of variables, Likert too!
+library(explore) #  Data exploration and fake data
+library(modeldata)
+library(modeldatatoo)
+library(owidR)
+library(HSAUR3)
+library(DataExplorer)
+library(syllogi)
+
+# Arrange Plots
+library(cowplot)
+library(patchwork)
+##
+library(ggformula)
+library(waffle)
+#devtools::install_github("clauswilke/ggtextures")
+library(ggtextures)
+library(ggiraphExtra)
+library(ggpattern)
+library(ggparliament)
+library(ggalluvial)
+library(ggmulti)
+library(ggmosaic)
+library(ggridges)
+library(scales)
+##
+library(timetk)
+library(timeplyr)
+
+library(ggprism)
+library(ggpubr)
+#devtools::install_github("ricardo-bion/ggradar", dependencies = TRUE)
+library(ggradar)
+library(ggh4x)
+library(gghighlight)
+library(gghalves)
+library(plotrix)
+library(ggbump)
+##
+library(sjlabelled)
+library(sjPlot)
+library(sjmisc)
+library(circlize)
+
+library(grid)
+library(gridExtra)
+library(ggplotify)
+library(aplot)
+
+# Tables
+library(flextable)
+library(gt)
+library(vtable)
+
+# Text
+library(systemfonts)
+library(sysfonts)
+library(showtext)
+library(showtextdb)
+library(ggtext)
+library(kableExtra)
+
+library(GGally)
+library(corrplot)
+
+library(vtable)
+
+theme_set(theme_classic())
+options(kableExtra.latex.load_packages = TRUE)
+
+```
+
+## Question Types
+
+Section A: Chart Prediction/Inference
+
+-   Each Question can have smaller specific sub-questions relating to
+    ~~the code lines~~ charts
+-   ~~Errors can be commission or omission type ( code is otherwise
+    complete, no blanks)~~
+
+With ~~or without~~ pictures
+
+-   ~~dplyr things (filter , group_by + summarize)~~
+-   ~~ggformula things (point, bar, col, box, histogram, density)~~
+-   ~~dplyr + ggformula things~~
+-   Questions related to aims/desires for the graph, and answers need to
+    be code lines
+-   Shapes and Metaphors
+-   Sequencing of code
+-   Good idea or bad idea with respect to specific geoms/ graphs
+
+Section B: Short Essays..horrors!!
+
+Section C: Case Study
+
+-   Description of a Dataset
+-   BW Picture of Detailed Visualization
+-   Write Code
+-   Write Insights
+-   Write Further Action/ Analysis
+
+```{r}
+#| echo: fenced
+#| eval: false
+p1 <- mpg |> gf_point(hwy ~ cty | cyl)
+ggsave(p1, filename = "figures3/p1.png", device = ragg::agg_png, res = 300)
+
+## Tables
+penguins_inspect <- penguins %>% inspect()
+# penguins_inspect$categorical %>% 
+#   flextable() %>% 
+#   autofit() %>% 
+#   save_as_image(., 
+#               path = "figures3/table1.png")
+#   
+#   library(flextable)
+# https://www.r-bloggers.com/2019/05/save-a-flextable-as-an-image/
+
+# energy <- read_delim("data/household_power_consumption.txt", delim = ";")
+# energy_head <- energy %>% select(Date, Time, starts_with("Global")) %>%  head()
+# energy_inspect <-  energy %>% select(-c(Date, Time)) %>% mosaic::inspect()
+# 
+# png("figures/energy-table-1.png", width=780,height=380,bg = "white")
+# grid.table(energy_head)
+# 
+# png("figures/energy-table-2.png", width=780,height=380,bg = "white")
+# grid.table(energy_inspect$categorical)
+# 
+# 
+# png("figures/energy-table-3.png", width=780,height=480,bg = "white")
+# grid.table(energy_inspect$quantitative)
+
+# 
+# penguins_inspect$categorical %>% 
+#   kable(caption = "Categorical Variables") %>%   
+#   kable_classic(full_width = F, html_font = "Cambria",) %>% 
+#   kable_styling(font_size = 14,
+#                 bootstrap_options =c("striped")) %>%
+#   kableExtra::as_image(.,
+#               file = "figures3/table_demo_a.png")
+# 
+
+
+kable(mtcars, "latex", booktabs = T) %>%
+kable_styling(latex_options = c("striped", "scale_down")) %>%
+row_spec(1, color = "red") %>%
+as_image(., file = "figures3/mtcars.png")
+
+instpenguins_inspect$quantitative %>%
+  kable(caption = "Quantitative Variables") %>%
+  kable_classic(full_width = F, html_font = "Cambria",) %>%
+  kable_styling(font_size = 14,
+                bootstrap_options =c("striped")) %>%
+  kableExtra::as_image(.,
+              file = "figures3/table_demo_b.png")
+
+penguins %>% skimr::skim() %>% 
+  rename("variable" = skim_variable, 
+         "type" = skim_type) %>% 
+  select(variable, type, everything()) %>% 
+  kable(caption = "Output of skim(dataset)") %>%   
+  kable_classic(full_width = F, html_font = "Cambria",) %>% 
+  kable_styling(font_size = 14,
+                bootstrap_options = c("striped")) %>%
+  kableExtra::as_image(.,
+              file = "figures3/table_demo_c.png")
+```
+
+## Section A: Short Answers(3 out of 4 questions, 5 marks each)
+
+### Question A.0 Student Degrees, Debt, and Earnings(Variables Table)(Paper#1)
+
+```{r}
+data(scorecard, package = "causaldata")
+head(scorecard)
+causaldata::scorecard %>% 
+  skimr::skim() %>% 
+  rename("variable" = skim_variable, 
+         "type" = skim_type) %>% 
+  select(variable, type, everything()) %>% 
+  kable(caption = "Output of skim(dataset)") %>%   
+  kable_classic(full_width = F, html_font = "Arial",) %>% 
+  kable_styling(font_size = 14,
+                bootstrap_options = c("striped")) %>%
+  # kableExtra::as_image(.,height = 6,
+  #             file = "figures3/table_scorecard1.png") %>% 
+  tableGrob(., rows = NULL, 
+            theme = ttheme_default(core = list(bg_params = list(fill = "grey99")))) %>%
+  grid.draw()
+
+
+labels <- tibble(
+  variables = c("unitid", "inst_name","state_abbr","pred_degree_awarded_ipeds", "year", "earnings_med", "count_not_working", "count_working"),
+  
+labels = c("College identifiers","Name of the college or university", "Two-letter abbreviation for the state the college is in", "Predominant degree awarded. 1 = less-than-two-year, 2 = two-year, 3 = four-year+", "Year in which outcomes are measured", "Median earnings among students (a) who received federal financial aid, (b) who began as undergraduates at the institution ten years prior, (c) with positive yearly earnings", "Number of students who are (a) not working (not necessarily unemployed), (b) received federal financial aid, and (c) who began as undergraduates at the institution ten years prior", "Number of students who are (a) working, (b) who received federal financial aid, and (c) who began as undergraduates at the institution ten years prior)")
+)
+labels %>% kable(caption = "Variable Descriptions") %>%   
+  kable_classic(full_width = F, html_font = "Arial",) %>% 
+  kable_styling(font_size = 14,
+                bootstrap_options = c("striped")) %>%
+  kableExtra::as_image(.,
+              file = "figures3/table_scorecard2.png")
+
+# myTable <- tableGrob(loans_contingency, 
+#   rows = NULL, 
+#   theme = ttheme_default(core = list(bg_params = list(fill = "grey99")))
+# )
+# grid.draw(myTable)
+# 
+```
+
+### Question A.0 Vietnamese Household Expenses(Variables Table) (Paper#2)
+
+```{r}
+vietnamH <- read_csv("https://vincentarelbundock.github.io/Rdatasets/csv/Ecdat/VietNamH.csv")
+head(vietnamH)
+vietnamH %>% 
+  skimr::skim() %>% 
+  rename("variable" = skim_variable, 
+         "type" = skim_type) %>% 
+  select(variable, type, everything()) %>% 
+  kable(caption = "Output of skim(dataset)") %>%   
+  kable_classic(full_width = F, html_font = "Cambria",) %>% 
+  kable_styling(font_size = 14,
+                bootstrap_options = c("striped")) %>%
+  kableExtra::as_image(.,
+              file = "figures3/table_vietnam1.png")
+
+labels <- tibble(
+  variables = c("sex", "age", "educyr", "farm", "urban", "hhsize", "lntotal", "lnmed", "lnrlfood",  "lnexp12m", "commune"),
+  labels = c("gender of household head (male,female)", "age of household head", "schooling year of household head", "farm household ?", "urban household ?", "household size", "log household total expenditure", "log household medical expenditure", "log household food expenditure", "log of total household health care expenditure for 12 months", "commune")
+)
+
+
+labels %>% kable(caption = "Variable Descriptions") %>%   
+  kable_classic(full_width = F, html_font = "Cambria",) %>% 
+  kable_styling(font_size = 14,
+                bootstrap_options = c("striped")) %>%
+  kableExtra::as_image(.,
+              file = "figures3/table_vietnam2.png")
+```
+
+### Question A.1 GPT detectors are biased against non-native English writers(Box Plot Multiples)
+
+DOI:https://doi.org/10.1016/j.patter.2023.100779
+
+```{r}
+#| cache: true
+detectors <- readr::read_csv('https://raw.githubusercontent.com/rfordatascience/tidytuesday/master/data/2023/2023-07-18/detectors.csv')
+detectors
+names(detectors)
+
+p1 <- detectors |> 
+  drop_na(native) |> 
+  gf_violin(.pred_AI ~ detector, 
+                    fill = ~ native, bw = .05) |> 
+  gf_labs(
+    x = "GPT Detector Tool",
+    y = "Predicted Probability That\nSample Was Written by AI",
+    fill = "Native\nEnglish\nWriter",
+    title = "How does AI classify Human-Written Text Samples?"
+  ) |> 
+  gf_refine(scale_fill_manual(values = c("black", "white")),
+            scale_x_discrete(guide = "prism_bracket")) |> 
+  gf_refine(theme(axis.text.x = 
+                    element_text(angle = 45, 
+                                 vjust = 1, hjust = 1, size = 6)))
+p1
+ggsave(p1, filename = "figures3/p1.png", device = ragg::agg_png, res = 300)
+
+```
+
+-   Identify the type of chart
+-   Identify the variables used for various geometrical aspects (x, y,
+    fill...). Name the variables appropriately.
+-   Justify whether or not there is evidence of bias in the use of AI to
+    detect if a written piece is written by humans or AI.
+-   Write skeleton ggformula code to create this graph.
+
+### Question A.2: Big Tech Stock Prices(Column Plot)
+
+https://www.morningstar.com/markets/5-charts-big-tech-stocks-collapse
+
+tidyTuesday 2023-02-07
+
+```{r}
+#| label: stock-gains-losses
+#| cache: true
+
+big_tech_stock_prices <- readr::read_csv('https://raw.githubusercontent.com/rfordatascience/tidytuesday/master/data/2023/2023-02-07/big_tech_stock_prices.csv')
+big_tech_companies <- readr::read_csv('https://raw.githubusercontent.com/rfordatascience/tidytuesday/master/data/2023/2023-02-07/big_tech_companies.csv')
+
+big_tech_stock_prices |> 
+  tsibble::as_tsibble(index = date, key = stock_symbol) |> 
+  group_by(stock_symbol) |> 
+  tsibble::index_by(year_group = lubridate::year(date)) |> 
+  summarize(mean_price = mean(close))
+
+start_2022 <- big_tech_stock_prices |> 
+  tsibble::as_tsibble(index = date, key = stock_symbol) |>
+  tsibble::filter_index("2022-01-03") |> 
+  select(stock_symbol,date, open)
+
+end_2022 <- big_tech_stock_prices |> 
+  tsibble::as_tsibble(index = date, key = stock_symbol) |>
+  tsibble::filter_index("2022-12-29") |> 
+  select(stock_symbol,date, close)
+
+gains_2022 <- left_join(start_2022, end_2022, by = "stock_symbol") |> 
+  mutate(gain = close - open, 
+         percent_gain = (gain/open)*100) |> 
+  select(stock_symbol, open, gain, percent_gain)
+
+start_2021 <- big_tech_stock_prices |> 
+  tsibble::as_tsibble(index = date, key = stock_symbol) |>
+  tsibble::filter_index("2021-01-04") |> 
+  select(stock_symbol,date, open)
+end_2021 <- big_tech_stock_prices |> 
+  tsibble::as_tsibble(index = date, key = stock_symbol) |>
+  tsibble::filter_index("2021-12-31") |> 
+  select(stock_symbol,date, close)
+
+gains_2021 <- left_join(start_2021, end_2021, by = "stock_symbol") |> 
+  mutate(gain = close - open, 
+         percent_gain_2021 = (gain/open)*100) |> 
+  select(stock_symbol, open, gain, percent_gain_2021) 
+
+gains_2022 <- left_join(start_2022, end_2022, by = "stock_symbol") |> 
+  mutate(gain = close - open, 
+         percent_gain_2022 = (gain/open)*100) |> 
+  select(stock_symbol, open, gain, percent_gain_2022)
+
+gains_2021_2022 <- 
+  left_join(gains_2021, gains_2022, by = "stock_symbol") |> 
+  pivot_longer(cols = c(percent_gain_2022, percent_gain_2021), 
+               values_to = "prices", names_to = "year") |> 
+  select(stock_symbol, year, prices) |> 
+  separate_wider_regex(cols = year, cols_remove = TRUE, 
+                       patterns = c("percent_gain_", year = "\\d+")
+                       )
+
+
+p2 <- gains_2021_2022 |> 
+  ggplot() + geom_col_pattern(aes(x = stock_symbol, y = prices, pattern = year, pattern_angle = year),fill = 'white',colour          = 'black', pattern_density = 0.35, pattern_fill    = 'black',
+    pattern_colour  = 'black', position = "dodge") + 
+  labs(y = "Percent Gains in each Year", title = "Stock Price Gains in Big Tech Companies") +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1, vjust = 1, size = 6))
+
+p2
+
+
+ggsave(p2, filename = "figures3/p2.png", device = ragg::agg_png, res = 300)
+
+```
+
+-   Identify the type of chart
+-   Identify the variables used for various geometrical aspects (x, y,
+    fill...). Name the variables appropriately.
+-   Based on this chart, write a two-line story to describe what may
+    have happened
+-   Draw a table to show the underlying data and its variables, with
+    sample values.
+
+### Question A.3: Scurvy and its treatment(Likert Plot, bad)
+
+https://htmlpreview.github.io/?https://github.com/higgi13425/medicaldata/blob/master/man/description_docs/scurvy_desc.html
+
+```{r}
+#| label: scurvy
+#| cache: true
+#| eval: false
+scurvy <- readr::read_csv('https://raw.githubusercontent.com/rfordatascience/tidytuesday/master/data/2023/2023-07-25/scurvy.csv')
+# Make variable labels and levels
+likert_labels = c("none", "mild", "moderate","severe") # numerically 0:3
+variable_labels <- c("Gum Rot",
+                     "Skin Sores",
+                     "Knee Weakness",
+                     "Lassitude",
+                     "Fit for Duty")
+
+scurvy_clean <- scurvy |> 
+  select(contains("d6")) |> 
+  separate_wider_delim(cols = gum_rot_d6, 
+                       delim = "_",
+                       names = c("gum_rot", NA), # "into" from separate()
+                       names_repair = make_clean_names) |> 
+  separate_wider_delim(cols = skin_sores_d6, 
+                       delim = "_",
+                       names = c("skin_sores", NA), # "into" from separate()
+                       names_repair = make_clean_names) |> 
+  separate_wider_delim(cols = weakness_of_the_knees_d6, 
+                       delim = "_",
+                       names = c("knee_weakness", NA),
+                       names_repair = make_clean_names) |> 
+  separate_wider_delim(cols = lassitude_d6, 
+                       delim = "_",
+                       names = c("lassitude", NA), # "into" from separate()
+                       names_repair = make_clean_names) |> 
+  separate_wider_delim(cols = fit_for_duty_d6, 
+                       delim = "_",
+                       names = c("fit_for_duty", NA), 
+                       names_repair = make_clean_names) |> 
+  mutate(across(1:5, as.integer)) 
+
+scurvy_clean <- scurvy_clean |> 
+  sjlabelled::set_label(label = variable_labels) |> 
+  sjlabelled::set_labels(labels = likert_labels) |> 
+  cbind(scurvy$treatment) |> 
+  rename("treatment" = `scurvy$treatment`)
+
+
+scurvy_clean
+# scurvy_clean |> 
+#   select(- c(fit_for_duty, treatment)) |>  
+#   sjPlot::plot_likert(title = "Scurvy Treatment Study", 
+#                       reverse.colors = TRUE,
+#                       values = "sum.outside")
+
+scurvy_chart <- scurvy_clean %>%
+  group_by(treatment) %>%
+  nest(.key = "list") %>%
+  mutate(charts = map(
+    .x = list, 
+    .f = \(.x) sjPlot::plot_likert(items = .x,
+                     title = "",geom.colors = "gs",
+                     reverse.colors = TRUE,
+                     values = "show", 
+                     legend.pos = "top",
+                     show.legend = F, wrap.labels = 25) +
+      font_size(labels.x = 2, labels.y = 2) + 
+      label_angle(angle.x = 45)
+    
+          )
+  )
+
+library(cowplot)
+
+p11 <- scurvy_chart |> pluck("charts",1)
+p21 <- scurvy_chart |> pluck("charts",2)
+p31 <- scurvy_chart |> pluck("charts",3)
+p41 <- scurvy_chart |> pluck("charts",4)
+p51 <- scurvy_chart |> pluck("charts",5)
+p61 <- scurvy_chart |> pluck("charts",6)
+
+p3 <- cowplot::plot_grid(p11, p21, p31, p41, p51, p61,
+                   labels = c('Cider', 'Sulphuric Acid', 'Vinegar', 'Sea Water', 'Citrus', 'Purgative'),
+                   align="hv") + labs(title = "Treatment of Scurvy: What seems to work?")
+
+p3
+
+
+ggsave(p3, filename = "figures3/p3.png", device = ragg::agg_png, res = 300)
+
+```
+
+### Question A.4 UFO Sightings (Box Plot array)(Paper #2)
+
+```{r}
+
+ufo_sightings <- readr::read_csv("https://raw.githubusercontent.com/rfordatascience/tidytuesday/master/data/2019/2019-06-25/ufo_sightings.csv")
+ufo_sightings
+
+p4 <- ufo_sightings %>%
+  mutate(length_min = as.numeric(encounter_length)/60) %>%
+  select(ufo_shape,length_min) %>% 
+  group_by(ufo_shape) %>% 
+  mutate(medianLength = median(log(length_min))) %>% 
+  drop_na() %>%
+  
+  ggplot(aes(x=reorder(ufo_shape, medianLength),y=log(length_min),fill= ufo_shape)) + 
+  geom_boxplot(colour='black',size=.4,alpha=.5) + 
+  geom_jitter(shape = 16,
+              position=position_jitter(0.2),
+              size=.25, alpha = 0.3) + 
+  coord_flip() + 
+  scale_fill_grey() + 
+  theme(legend.position='none') + 
+  labs(title = "UFO Encounters",
+       y = "log(Encounter Duration)", x = "UFO Shape") 
+
+p4
+ggsave(p4, filename = "figures3/p4.png", device = ragg::agg_png, res = 300)
+
+```
+
+-   Identify the type of charts
+-   Identify the variables used for various geometrical aspects (x, y,
+    fill...). Name the variables appropriately.
+-   Which UFO shapes have had the shortest duration encounters? Annd
+    which have had the longest?
+-   Draw a table to show the underlying data and its variables, with
+    sample values.
+
+the shortest durations are found for shapes like flash, fireball, ie
+quick events the longest durations are found for bigger shapes, like
+diamond, sphere, cone
+
+### Question A.5 Track and Field Athletics(Correlation Error Bars)(Paper#1)
+
+```{r}
+# library(HSAUR)
+
+heptathlon
+
+# Does not work with native pipe !!! ;-OOO
+hurdles_corr <- heptathlon %>%
+  rownames_to_column(var = "name") %>% 
+  dplyr::select(where(is.numeric)) %>% 
+  # leave off hurdles to get all the remaining ones
+  dplyr::select(-c(hurdles, score)) %>% 
+  
+  purrr::map(.x = .,
+             .f = \(.x) cor.test(.x, heptathlon$hurdles)) %>% 
+  
+    # tidy up the cor.test outputs into a tidy data frame
+  map_dfr(broom::tidy, .id = "predictor") 
+hurdles_corr
+
+p5 <- hurdles_corr %>%
+  
+  gf_errorbar(conf.high + conf.low ~ reorder(predictor, estimate),
+              #color = ~ estimate,
+              width = 0.2,
+              linewidth = ~ -log10(p.value)) %>% 
+  
+    # Reference line at zero correlation score
+  gf_hline(yintercept = 0, color = "grey", linewidth = 2) %>% 
+  
+  # All correlation estimates as points
+  gf_point(estimate ~ reorder(predictor, estimate), 
+           shape = 21, size = 4,
+           color = "white", fill = "black") %>% 
+  
+
+  
+  # Themes,Titles, and Scales
+  gf_labs(x = NULL, y = "Correlation with hurdles timing in Heptathlon",
+          title = "Heptathlon Scores: Which Events show\nCorrelated Scores with Hurdles?",
+          caption = "Significance = - log10(p.value)") %>% 
+  
+  gf_refine(
+    scale_colour_gradient2("Correlation",low = "grey80", high = "grey0"),
+    scale_linewidth_continuous("significance",
+                                       range = c(0.2,4))) %>% 
+  gf_refine(guides(linewidth = guide_legend(reverse = TRUE))) %>%
+  gf_theme(theme_classic())
+p5
+
+ggsave(p5, filename = "figures3/p5.png", device = ragg::agg_png, res = 300)
+
+```
+
+-   Identify the type of charts
+-   Identify the variables used for various geometrical aspects (x, y,
+    fill...). Name the variables appropriately.
+-   Which events in the 7-event heptathlon are most highly correlated
+    with scores in hurdles?
+-   If an athlete was a record holder in both high jump and hurdles,
+    what would be your opinion about them? Justify based on the graph!
+
+### Question A.6: Happy data from GGally (Mosaic Chart or Corrplot)
+
+```{r}
+library(ggmosaic)
+data(happy, package = "ggmosaic")
+glimpse(happy)
+happy |> count(happy)
+happy |> count(health)
+
+p6a <- happy |> 
+  drop_na() |> 
+  group_by(degree, happy) |> 
+  summarize(count = n()) |> ggplot() + 
+  geom_col(aes(y = count, x = degree, fill = happy)) +
+  theme(legend.position = "top", 
+        legend.title = element_blank(),
+        legend.text = element_text(size = 8), 
+        legend.key.size = unit(0.75, "lines"),
+        axis.text.x = element_text(hjust = 1, vjust = 1, size = 8)) +
+  #guides(fill = guide_legend(override.aes = list(size = 0.1))) + 
+  labs(y = "Count", title = "Count of Happy People vs Education Degree") +
+  scale_fill_grey(start = 0.8, end = 0.4) 
+
+p6b <- happy |>
+  drop_na() |> 
+  ggplot() + 
+  ggmosaic::geom_mosaic(aes(x = product(happy, degree), 
+                            fill = happy)) + 
+  geom_mosaic_text(aes(x = product(happy, degree), 
+                       label = after_stat(.wt))) + 
+  theme(axis.text.x = element_text(angle = 45, vjust = 1, 
+                                   hjust = 1, size = 8),
+        axis.title.y = element_blank()) +
+  scale_fill_grey(start = 0.8, end = 0.4) + 
+  theme(legend.position = "top", 
+        legend.title = element_blank(),
+        legend.text = element_text(size = 8), 
+        legend.key.size = unit(0.75, "lines"),
+        axis.text.x = element_text(hjust = 1, vjust = 1, size = 8)) + guides(fill = guide_legend(override.aes = list(size = 0.1)))
+
+
+###
+
+p6c <- happy |> 
+  drop_na() |> 
+  group_by(degree, happy) |> 
+  summarize(count = n()) |> 
+  add_tally(count,name = "total") |> 
+  mutate(prop = count/total) |> 
+  gf_col(prop ~ degree, fill = ~ happy, position = "dodge", 
+         color = "white") |> 
+  gf_labs(y = "Proportion", title = "Proportion of Happy People vs Education Degree") |> 
+  gf_refine(scale_fill_grey(start = 0.8, end = 0.2))
+p6c
+
+ggsave(p6a, filename = "figures3/p6a.png", device = ragg::agg_png, res = 300)
+ggsave(p6b, filename = "figures3/p6b.png", device = ragg::agg_png, res = 300)
+ggsave(p6c, filename = "figures3/p6c.png", device = ragg::agg_png, res = 300)
+
+```
+
+-   Identify the type of charts
+-   Identify the variables used for various geometrical aspects (x, y,
+    fill...). Name the variables appropriately.
+-   What other option could you have considered to plot this very same
+    type of chart?
+-   Draw a table to show the underlying data and its variables, with
+    sample values.
+-   If the original table was in case form, what pre-processing of the
+    data would you have needed to arrive at this plot?
+
+### Question A.7 California Transit Payments (Likert Plot Paper #1)
+
+Pike, Susan (2022). Transit payment preferences of unbanked passengers
+\[Dataset\]. Dryad. https://doi.org/10.25338/B8R04T
+
+```{r}
+CalPayment <- read_csv("data/CalTransitPayment/Transit_payment_preferences_of_unbanked_passengers.csv")
+# glimpse(CalPayment)
+# skimr::skim(CalPayment)
+# inspect(CalPayment)
+# names(CalPayment)
+  
+CalPayment1 <- CalPayment |> 
+  dplyr::select(starts_with("payment")) |> 
+  select(-contains("option"), - payment.other) %>% 
+  drop_na()
+
+CalPayment1
+# # inspect(CalPayment1)
+# # glimpse(CalPayment1)
+# CalPayment1 |> count(payment.cash)
+# CalPayment1 |> count(payment.prepaid)
+# CalPayment1 |> count(payment.mobile)
+# CalPayment1 |> count(payment.card)
+
+variable_labels <- c("Do you use Cash to pay?",
+                     "Do you use a Prepaid Card?",
+                     "Have you use Mobile Phone Payment?",
+                     "Do you use any other Card?")
+
+CalPayment1 <- CalPayment1 %>% 
+  mutate(
+    payment.cash = case_when(payment.cash == "No" ~ 1,
+                             payment.cash == "Yes" ~ 2),
+    
+    payment.card = case_when(payment.card == "No" ~ 1,
+                             payment.card == "Contact-less payment" ~ 2),
+    payment.prepaid = case_when(payment.prepaid == "No" ~ 1,
+                             payment.card ==  "Prepaid card from transit agency" ~ 2),
+    payment.mobile = case_when(payment.mobile == "No" ~ 1,
+                             payment.mobile == "Mobile phone" ~ 2)
+    ) %>% 
+    sjlabelled::set_label(x = ., label = variable_labels) 
+
+
+CalPayment1$payment.cash <- set_labels(CalPayment1$payment.cash, 
+                                      labels = c("No", "Yes"))
+CalPayment1$payment.prepaid <- set_labels(CalPayment1$payment.prepaid,
+                labels = c("No", "Prepaid card from transit agency"))
+CalPayment1$payment.mobile <- set_labels(CalPayment1$payment.mobile, labels = c("No", "Mobile phone"))
+CalPayment1$payment.card <- set_labels(CalPayment1$payment.card, labels = c("No", "Contact-less payment"))
+CalPayment1
+
+
+
+p7 <- plot_likert(CalPayment1, reverse.colors = TRUE, reverse.scale = TRUE) +
+  scale_fill_grey(start = 0.4, end = 0.8, labels = c("No", "Yes")) +
+  labs(title = "Payment Options in California Transit for Un-banked Passengers",
+       caption = "Pike, Susan (2022). Transit payment preferences of unbanked passengers\n [Dataset]Dryad. https://doi.org/10.25338/B8R04T")
+p7
+
+ggsave(p7, filename = "figures3/p7.png", device = ragg::agg_png, res = 300)
+
+```
+
+-   Identify the type of charts
+-   Identify the variables used for various geometrical aspects (x, y,
+    fill...). Name the variables appropriately.
+-   What activity might have been carried out to obtain the data graphed
+    here? Provide some details
+-   What could be the reason for varying counts against each of the
+    Questions shown on the y-axis?
+-   What would be your recommendation to the Transport Company?
+-   To the Banking Sector?
+
+### Question A.8 California Transit Payments (Likert Plot Paper #2)
+
+Pike, Susan (2022). Transit payment preferences of unbanked passengers
+\[Dataset\]. Dryad. https://doi.org/10.25338/B8R04T
+
+```{r}
+CalPayment <- read_csv("data/CalTransitPayment/Transit_payment_preferences_of_unbanked_passengers.csv")
+glimpse(CalPayment)
+skimr::skim(CalPayment)
+inspect(CalPayment)
+names(CalPayment)
+  
+CalPayment2 <- CalPayment |> 
+  dplyr::select(starts_with("phone")) %>% 
+  mutate(across(everything(), ~ str_replace_all(., "1", "2"))) %>% 
+  mutate(across(everything(), ~ str_replace_all(., "0", "1"))) %>% 
+  mutate(across(everything(), as.numeric))
+
+# ▢ Not having wifi access (1)
+# ▢ Ways to add money (2)
+# ▢ Identity concerns (3)
+# ▢ Monthly fees (4)
+# ▢ Knowing the balance (5)
+# ▢ Other (please write in) (6)
+ 
+# 
+CalPayment2
+CalPayment2 |> count(phone.balance)
+CalPayment2 |> count(phone.wifi)
+CalPayment2 |> count(phone.money)
+CalPayment2 |> count(phone.identity)
+CalPayment2 |> count(phone.fees)
+
+variable_labels2 <- c("Wi_Fi access?",
+                     "Ways to add money?",
+                     "Identity Concerns?",
+                     "Monthly Fees?",
+                     "Knowing the balance?")
+
+
+CalPayment2 <- CalPayment2 %>% 
+  sjlabelled::set_label(x = ., label = variable_labels2) %>%
+  sjlabelled::set_labels(x = ., labels = c("No", "Yes"))
+
+str(CalPayment2)
+
+p8 <- plot_likert(CalPayment2, reverse.colors = F, reverse.scale = F) +
+  scale_fill_grey(start = 0.4, end = 0.8, labels = c("Yes", "No")) +
+labs(title = "Challenges in Phone Payment in California Transit\n for Un-banked Passengers", caption = "Pike, Susan (2022). Transit payment preferences of unbanked passengers\n [Dataset]Dryad. https://doi.org/10.25338/B8R04T")
+
+p8
+ggsave(p8, filename = "figures3/p8.png", device = ragg::agg_png, res = 300)
+
+```
+
+-   Identify the type of charts
+-   Identify the variables used for various geometrical aspects (x, y,
+    fill...). Name the variables appropriately.
+-   What activity might have been carried out to obtain the data graphed
+    here? Provide some details.
+-   What would be your recommendation to the Transport Company?
+-   To the Phone Companies?
+
+### Question A.9 School Scores-1(Pairs Plot simple, NEED TO REWORK)
+
+https://think.cs.vt.edu/corgis/csv/school_scores/
+
+```{r}
+
+scores <- read_csv("data/school_scores.csv",
+                   name_repair = ~ janitor::make_clean_names(., case = "big_camel"))
+glimpse(scores)
+names(scores)
+
+scores %>% 
+  select(contains("AverageGpa")) %>% 
+  rename_with(
+  ~ str_replace(., pattern = "AcademicSubjects",
+              replacement = "")) %>% 
+  # remove the "Math" in the names
+   rename_with(
+  ~ str_replace(., pattern = "AverageGpa",
+              replacement = "")) %>%  
+
+  GGally::ggpairs(title = "Academic Scores in Diferent Subjects", 
+                  progress = FALSE, switch = "both", 
+                  lower = list(continuous = wrap("smooth", 
+                                 alpha = 0.05,se = FALSE))) + 
+  theme_bw()
+
+```
+
+### Question A.10 School Scores-2(Box Plots for Comparison)
+
+https://think.cs.vt.edu/corgis/csv/school_scores/
+
+```{r}
+scores <- read_csv("data/school_scores.csv",
+                   name_repair = ~ janitor::make_clean_names(., case = "big_camel"))
+
+p10 <- scores %>% 
+  select(contains("KMath")) %>% 
+  # remove the "FamilyIncome in the names
+  rename_with(
+  ~ str_replace(., pattern = "FamilyIncome",
+              replacement = "")) %>% 
+  # remove the "Math" in the names
+   rename_with(
+  ~ str_replace(., pattern = "Math",
+              replacement = "")) %>%   
+  pivot_longer(cols = everything(), 
+               names_to = "names", 
+               values_to = "values") %>% 
+  mutate(names = base::factor(names, labels = unique(names),
+                              levels = c("LessThan20K", 
+                                         "Between20_40K",
+                                         "Between40_60K",
+                                         "Between60_80K",
+                                         "Between80_100K",
+                                         "MoreThan100K"),
+                              ordered = TRUE)) %>% 
+  gf_boxplot(values ~ reorder(names, values,FUN = median), 
+             group = ~ names, fill = ~ names, 
+             show.legend = FALSE,
+            title = "Math Scores vs Family Income",
+            xlab = "Income Class",
+            ylab = "Scores in Math") %>% 
+  gf_refine(coord_flip(), 
+            scale_fill_grey(start = 0.8, end = 0.3))
+p10
+ggsave(p10, filename = "figures3/p10.png", device = ragg::agg_png, res = 300)
+
+```
+
+### Question A.11 School Scores-3(Densities + facets NEED TO REWORK)
+
+https://think.cs.vt.edu/corgis/csv/school_scores/
+
+```{r}
+scores <- read_csv("data/school_scores.csv",
+                   name_repair = ~ janitor::make_clean_names(., 
+                                              case = "big_camel"))
+glimpse(scores)
+names(scores)
+
+scores_subject_sex <- 
+  scores %>% 
+  select(contains("ScoreRanges")) %>% 
+  # remove the "FamilyIncome in the names
+  rename_with(
+  ~ str_replace(., pattern = "ScoreRangesBetween",
+              replacement = "")) %>% 
+  pivot_longer( cols = everything(), 
+                names_to = "names", 
+                values_to = "scores") %>% 
+  separate_wider_regex(cols = names,
+        patterns = c(range = "\\d+[A-Z][a-z]\\d+",
+                     subject = "[A-Z][a-z]*",
+                     sex = "[A-Z][a-z]*"),cols_remove = T) %>% 
+  mutate(range = factor(range),
+         subject = factor(subject),
+         sex = factor(sex))
+scores_subject_sex                
+
+scores_subject_sex %>% 
+  filter(sex != "Total") %>% 
+  group_by(range) %>% 
+  gf_density_ridges(sex ~ scores | subject)
+
+```
+
+### Question A.12 Household Tasks ( Alluvial)(Paper #1)
+
+```{r}
+# library(rmcorr)
+# dyads <- marusich2016_exp2
+# dyads
+
+library(datarium)
+housetasks <- housetasks.raw
+housetasks
+housetasks$status <- str_replace_all(housetasks$status, pattern = "Parter", replacement = "Partner") 
+
+housetasks_summary <- housetasks %>% 
+  mutate(status = factor(status, levels = c("Partner1", "Partner2", "Jointly", "Alternating"))) %>% 
+  group_by(tasks, status) %>% 
+  summarize(count = n()) 
+
+p12 <- housetasks_summary %>% 
+  ggplot(aes(axis1 = tasks, axis2 = status, y = count)) + 
+  geom_alluvium(aes(fill = status)) + 
+  geom_stratum() + 
+  geom_text(stat = "stratum", aes(label = after_stat(stratum))) +
+  scale_x_discrete(limits = c("Task", "Who Does it?"),
+                   expand = c(.1, .1)) +
+  scale_pattern_fill_manual() + 
+  scale_fill_grey(start = 0.2, end = 0.9) +
+  labs(title = "Work At Home?", caption = "household dataset from package datarium") + theme_classic()
+
+p12
+ggsave(p12, filename = "figures3/p12.png", device = ragg::agg_png, res = 300)
+
+```
+
+-   What is the type of chart in the figure?
+-   How many observations were made in this dataset?
+-   What is the proportion of tasks carried out by Partner1 to those
+    carried out by Partner2?
+-   Based on this chart (and known gender stereotypes), can you guess
+    the gender of Partner1 and Partner2? Which Task did you use to be
+    sure that your choice was most likely to be true?
+-   Discuss the category "Alternating". Why are the lines reaching this
+    level very thin and what does that mean?
+
+### Question A.13 Caesarian Births(Alluvial)(Paper #2)
+
+```{r}
+#| warning: false
+library(vcdExtra)
+Caesar <- Caesar %>% as_tibble()
+Caesar %>% names()
+
+p13 <- Caesar %>% ggplot(aes(axis4 = Infection, axis2 = Risk, axis3 = Antibiotics, axis1 = Planned, y = n)) +
+  geom_alluvium(aes(fill = Planned)) + 
+  geom_stratum(width = 0.4, fill = "grey95", color = "black") +
+  geom_text(stat = "stratum", aes(label = after_stat(stratum))) +
+  scale_x_discrete(limits = c("Planned?", "Risk\nFactors\nPresent?", "Antibiotics\nGiven?", "Infection"),expand = c(.1, .1)) +
+  scale_fill_grey(start = 0.2, end = 0.65) +
+  labs(title = "Infection from birth by Caesarean section", caption = "Caesar dataset from package vcdExtra") + 
+  theme_classic()
+p13
+ggsave(p13, filename = "figures3/p13.png", device = ragg::agg_png, res = 300)
+
+```
+
+-   What is the type of chart in the figure?
+-   How many observations were made in this dataset?
+-   What is the proportion of pregnancies with risk factors to those
+    without risk factors?
+-   What was the outcome for those who had risk factors and who did not
+    take/receive antibiotics?
+-   Is Planned Caesarian section a good idea? Justify based on the
+    graph.
+
+### Question A.14 Coffee (Ranking and Bump Charts)
+
+```{r}
+coffee_ratings <- readr::read_csv('https://raw.githubusercontent.com/rfordatascience/tidytuesday/master/data/2020/2020-07-07/coffee_ratings.csv')
+coffee_ratings %>% head()
+coffee_select <- coffee_ratings %>% 
+  select(total_cup_points,species,country_of_origin,processing_method,aroma,flavor,aftertaste,acidity,body,balance,uniformity,clean_cup,sweetness,cupper_points,moisture,color,,category_one_defects,category_two_defects)
+skim(coffee_select)
+coffee_select %>% select(total_cup_points, aroma, flavor,aftertaste,acidity,body) %>% 
+  ggpairs(progress = FALSE, switch = "both") + theme_bw()
+
+```
+
+### Question A.15a Companies Ranking (Bump Charts) (Paper#1)
+
+```{r}
+companies <- read_csv("https://vincentarelbundock.github.io/Rdatasets/csv/HSAUR/Forbes2000.csv")
+skim(companies)
+
+companies %>% 
+  filter(rank %in% 1:5) %>% 
+  mutate(sales_rank = dense_rank(desc(sales)),
+         profits_rank = dense_rank(desc(profits)),
+         assets_rank = dense_rank(desc(assets)),
+         marketvalue_rank = dense_rank(desc(marketvalue))) %>% 
+  select(name, contains("rank"), -rank) %>% 
+  pivot_longer(cols = contains("rank"), names_to = "biz_parameter", values_to = "ranks") %>% arrange(biz_parameter) -> companies_bump
+companies_bump
+companies_bump %>% 
+ggplot(aes(x = biz_parameter, y = ranks, group = name, linetype = name, shape = name)) + 
+  geom_point(size = 6, fill = "black") + ggbump::geom_bump(linewidth = 1) + 
+  scale_x_manual(values = c(1:4), labels = c("assets", "marketvalue", "profits", "sales")) +
+  scale_shape_manual("Companies", values = c(21:25)) +
+  scale_y_reverse() + 
+  scale_linetype_manual("", values = c(1,3,4,5,6)) +
+  labs(title = "Forbes 2000 Ranking of the World's Biggest Companies (Year 2004)", caption = "From R package HSAUR", x = "Business Parameter", y = "Rank") -> p15a
+p15a
+ggsave(p15a, filename = "figures3/p15a.png", device = ragg::agg_png, res = 300)
+
+
+
+
+```
+
+### Question A.15b Companies Ranking (RadarCharts)
+
+```{r}
+companies <- read_csv("https://vincentarelbundock.github.io/Rdatasets/csv/HSAUR/Forbes2000.csv")
+skim(companies)
+
+companies %>% 
+  filter(rank %in% 1:5) %>% 
+  select(name,sales,profits,marketvalue,assets)  -> companies_radar
+companies_radar
+companies_radar %>% 
+  ggiraphExtra::ggRadar(data = .,
+        aes(facet = name, fill = name),
+        colour = "black", size = 4,
+        interactive = FALSE, # try TRUE
+        rescale = TRUE) + 
+  labs(title = "Forbes 2000 Ratings for Companies in 2004", 
+       caption = "From R package \"HSAUR\"", 
+       subtitle = "All scores scaled to within {0,1}") + 
+  
+  scale_fill_manual("Companies", values = rep("black", times = 5), aesthetics = c("fill", "color")) + 
+  theme_bw() + 
+  theme(legend.position = "none") -> p15b
+
+p15b
+ggsave(p15b, filename = "figures3/p15b.png", device = ragg::agg_png, res = 300)
+
+
+
+
+```
+
+### Question A.16a Sake Ranking (Bump Charts)
+
+```{r}
+sake <- read_csv("https://vincentarelbundock.github.io/Rdatasets/csv/heplots/Sake.csv")
+skim(sake)
+set.seed(42)
+
+(sake_sample <- sake %>%  
+  rename("Sake_Type" = rownames) %>% 
+    mutate(Sake_Type = as_factor(Sake_Type)) %>% 
+    mutate(taste_rank = dense_rank(taste),
+           smell_rank = dense_rank(smell),
+           alcohol_rank = dense_rank(alcohol),
+           #acidity1_rank = dense_rank(acidity1),
+           #acidity2_rank = dense_rank(acidity2),
+           sake_rank = dense_rank(sake),
+           #pH_rank = dense_rank(pH),
+           rsugar_rank = dense_rank(rsugar),
+           tsugar_rank = dense_rank(tsugar),
+           #nitrogen_rank = dense_rank(nitrogen)
+           ) %>% 
+    select(Sake_Type, contains("rank")) %>% 
+  slice_sample(n = 5))
+
+sake_sample %>% 
+  pivot_longer(cols = -Sake_Type, 
+               names_to = "parameters", 
+               values_to = "scores") %>% 
+ggplot(aes(x = parameters, y = scores, group = Sake_Type, linetype = Sake_Type, shape = Sake_Type)) + 
+  ggbump::geom_bump(linewidth = 1) +  
+  geom_point(size = 3, fill = "white") +
+  scale_x_manual(values = c(1:6), 
+                 labels = c("alcohol", "r-sugar", "sake", "smell", "taste", "tsugar")) +
+  scale_shape_manual("Sake Type", values = c(21:25)) +
+  scale_linetype_manual("Sake Type", values = c(1,3,4,5,6)) +
+  labs(title = "Japanese Sake Wine Ratings", 
+       subtitle = "From R package \"heplots\"", 
+       x = "Wine Parameter", y = "Points") -> p16a
+p16a
+ggsave(p16a, filename = "figures3/p16a.png", device = ragg::agg_png, res = 300)
+
+```
+
+### Question A.16b Sake Ranking (Radar Charts)(Paper #1)
+
+```{r}
+## Radar Chart
+## 
+sake <- read_csv("https://vincentarelbundock.github.io/Rdatasets/csv/heplots/Sake.csv")
+skim(sake)
+set.seed(42)
+
+(sake_sample <- sake %>%  
+  rename("Sake_Type" = rownames) %>% 
+    mutate(Sake_Type = as_factor(Sake_Type)) %>% 
+  slice_sample(n = 5))
+
+sake_sample %>% 
+  ggiraphExtra::ggRadar(data = .,
+        aes(fill = Sake_Type, shape = Sake_Type),
+        colour = "black", size = 4,
+        interactive = FALSE, # try TRUE
+        rescale = TRUE) + 
+  labs(title = "Japanese Sake Wine Ratings", 
+       caption = "From R package \"heplots\"", 
+       subtitle = "Scores scaled to {0,1}\nSake Types 1, 5, 10, 17, and 25\nRated on *taste, smell, pH, acidity1, acidity2, sake, rsugar, tsugar, alcohol, nitrogen*") + 
+  
+  scale_fill_grey("Sake Types", aesthetics = c("fill", "color")) + 
+  facet_wrap(facets = vars(Sake_Type), nrow = 2) + 
+  theme_bw() + theme(plot.subtitle = element_text(size = 8)) -> p16b
+
+p16b
+
+ggsave(p16b, filename = "figures3/p16b.png", device = ragg::agg_png, res = 300)
+
+
+```
+
+### Question A.17 Parenting
+
+```{r}
+library(ggradar)
+library(scales)
+dads <- read_csv("https://vincentarelbundock.github.io/Rdatasets/csv/heplots/Parenting.csv")
+dads
+dads_summary <- dads %>% mutate(group = as_factor(group)) %>% 
+  select(-rownames) %>% 
+  group_by(group) %>% 
+  summarize(across(where(is.numeric), mean)) 
+dads_summary
+dads_summary %>% 
+  mutate(across(where(is.numeric), mosaic::rescale)) %>% ggradar::ggradar(fill = TRUE, fill.alpha = 0.2,legend.position = "")
+
+```
+
+### Question A.16 Food Carbon
+
+```{r}
+library(tidyverse)
+library(janitor)
+library(rvest)
+
+# Credit to Kasia and minorly edited to create output file and test plot
+# Blog post at https://r-tastic.co.uk/post/from-messy-to-tidy/
+
+url <- "https://www.nu3.de/blogs/nutrition/food-carbon-footprint-index-2018"
+
+# scrape the website
+url_html <- read_html(url)
+
+# extract the HTML table
+whole_table <- url_html %>% 
+  html_nodes('table') %>%
+  html_table(fill = TRUE) %>%
+  .[[1]]
+
+table_content <- whole_table %>%
+  select(-X1) %>% # remove redundant column
+  filter(!dplyr::row_number() %in% 1:3) # remove redundant rows
+#table_content
+raw_headers <- url_html %>%
+  html_nodes(".thead-icon") %>%
+  html_attr('title')
+raw_headers
+tidy_bottom_header <- raw_headers[28:length(raw_headers)]
+tidy_bottom_header[1:10]
+
+raw_middle_header <- raw_headers[17:27]
+raw_middle_header
+
+tidy_headers <- c(
+  rep(raw_middle_header[1:7], each = 2),
+  "animal_total",
+  rep(raw_middle_header[8:length(raw_middle_header)], each = 2),
+  "non_animal_total",
+  "country_total")
+
+tidy_headers
+
+combined_colnames <- paste(tidy_headers, tidy_bottom_header, sep = ';')
+colnames(table_content) <- c("Country", combined_colnames)
+glimpse(table_content[, 1:10])
+
+long_table <- table_content %>%
+  # make column names observations of Category variable
+  tidyr::pivot_longer(cols = -Country, names_to = "Category", values_to = "Values") %>%
+  # separate food-related information from the metric
+  tidyr::separate(col = Category, into = c("Food Category", "Metric"), sep = ';')
+
+glimpse(long_table)
+
+tidy_table <- long_table %>%
+  tidyr::pivot_wider(names_from = Metric, values_from = Values) %>%
+  janitor::clean_names('snake')
+
+glimpse(tidy_table)
+
+final_table <- tidy_table %>%
+  rename(consumption = 3,
+         co2_emmission = 4) %>%
+  filter(!stringr::str_detect(food_category, "total"))
+
+clean_table <- final_table %>% 
+  mutate_at(vars(consumption, co2_emmission), parse_number)
+clean_table
+# clean_table %>% 
+#   write_csv(here::here("2020/2020-02-18", "food_consumption.csv"))
+
+clean_table %>% 
+  ggplot(aes(x = fct_reorder(food_category, consumption), y = consumption, color = country)) +
+  geom_jitter() +
+  theme(legend.position = "none") +
+  coord_flip()
+
+clean_table %>% 
+  ggplot(aes(x = fct_reorder(food_category, co2_emmission), y = co2_emmission, color = country)) +
+  geom_jitter() +
+  theme(legend.position = "none") +
+  coord_flip()
+
+
+clean_table %>% ggplot(aes(consumption,co2_emmission, colour = food_category)) + geom_point() + facet_wrap(facets = vars(food_category), scales = "free_y") +  theme(legend.position = "none")
+
+# Use purrr to develop linera regression slopes per food category
+clean_table %>% 
+  group_by(food_category) %>% 
+  dplyr::group_modify(
+             .data = .,
+             .f = ~ lm(co2_emmission ~ consumption, data = .) %>% 
+      
+      # glance/tidy is part of the group_map's .f variable.
+      # Applies to each model
+      # .f MUST generate a tibble here and *not* a list
+      # Hence broom::tidy is essential!
+      
+      broom::tidy()) %>% 
+  
+  # try `tidy()` and `augment()`
+  # No need for map_dfr 
+  # Since we already have a grouped tibble from `group_modify()`
+  # Just ungroup()
+  ungroup() %>% 
+  filter(term != "(Intercept)") %>% 
+  ggplot(aes(estimate, fct_reorder(food_category, estimate))) + 
+  geom_point(size = 3, aes(colour = fct_reorder(food_category, estimate))) +  theme(legend.position = "none") + 
+  xlab("Regression Slope of Co2 vs Consumption") +
+  ylab("Food Category")
+
+
+```
+
+## Section B: Short Essay (4 out of 5 questions, 10 marks each)
+
+### Cats in the UK
+
+```{r}
+cats_uk <- readr::read_csv('https://raw.githubusercontent.com/rfordatascience/tidytuesday/master/data/2023/2023-01-31/cats_uk.csv')
+head(cats_uk)
+dim(cats_uk)
+cats_uk %>% 
+  gf_point(location_lat ~ location_long, 
+                     show.legend = FALSE, alpha= 0.1,
+                     title = "A Hundred English Cats and their Eighteen Thousand Locations",xlab = "Longitude", ylab = "Latitude", caption = "Tidy Tuesday 31-Jan-2023") -> pcats
+
+pcats
+
+ggsave(pcats, filename = "figures3/pcats.png", device = ragg::agg_png, res = 300)
+                     
+
+```
+
+### Temperatures in France
+
+```{r}
+library(scales)
+temperature <- read_csv("data/temperatures.csv", col_names = TRUE) %>% 
+  rename("Mean 1979-2000" = `Moyenne 1979-2000`)
+temperature %>% count(dates)
+
+temperature %>%
+  mutate(dates = lubridate::dmy(dates)) %>%
+  gf_line(`1979` ~ dates)
+
+
+
+(temperature %>%
+  mutate(dates = lubridate::dmy(dates)) %>% 
+  pivot_longer(cols = c(- dates), 
+               names_to = "series", 
+               values_to = "values") %>% 
+  mutate(series = as_factor(series))-> temperature_long)
+
+temperature_long %>% 
+  gf_line(values ~ dates, color = "grey90", group = ~series) %>% 
+  gf_line(values ~ dates, color = ~ "2022", linewidth = 1,
+          data = temperature_long %>% filter(series == 2022)) %>% 
+  gf_line(values ~ dates, color = ~ "2023", linewidth = 1,
+          data = temperature_long %>% filter(series == 2023)) %>% 
+  gf_line(values ~ dates, color = ~"Mean 1979-2000", linetype = 3, 
+          linewidth = 1,
+          data = temperature_long %>% filter(series == "Mean 1979-2000"),
+          title = "Temperatures in France", 
+          subtitle = "From 1970 to present", 
+          xlab = "Month", ylab= "Temperature") %>% 
+  # gf_label(16 ~ lubridate::dmy("01/07/2023"), label = "2023", inherit = FALSE) %>% 
+  gf_refine(scale_color_manual("", values = c("grey70","black", "grey50")),
+ scale_x_date(date_breaks="1 month", date_labels="%b")) -> ptemp
+
+ptemp
+
+ggsave(ptemp, filename = "figures3/ptemp.png", device = ragg::agg_png, res = 300)
+                     
+
+```
+
+## Section C: Case Study (3 questions, 15 marks each)
+
+### C.1 Laptop Prices
+
+```{r}
+data <- read_csv("https://vincentarelbundock.github.io/Rdatasets/csv/Ecdat/Computers.csv")
+data %>% head()
+
+data %>% gf_point(price ~ speed)
+
+
+data %>% 
+  select(price, speed, hd, ram, screen) %>% 
+  ggpairs(progress = F)
+
+```
+
+C.2
+
+```{r}
+simdat <- read_csv("https://vincentarelbundock.github.io/Rdatasets/csv/openintro/simulated_scatter.csv")
+head(simdat)
+
+simdat %>% gf_point(y ~ x, group = ~ group)
+```
+
+### C.3 Diwali Sales
+
+```{r}
+diwali <- readr::read_csv('https://raw.githubusercontent.com/rfordatascience/tidytuesday/master/data/2023/2023-11-14/diwali_sales_data.csv')
+
+head(diwali)
+
+diwali %>% 
+  skimr::skim() %>% 
+  rename("variable" = skim_variable, 
+         "type" = skim_type) %>% 
+  select(variable, type, everything()) %>% 
+  kable(caption = "Output of skim(diwali)") %>%   
+  kable_classic(full_width = F, html_font = "Arial",) %>% 
+  kable_styling(font_size = 14,
+                bootstrap_options = c("striped")) %>%
+  kableExtra::as_image(.,height = 6,
+              file = "figures3/table_diwali1.png")
+
+
+diwali_dictionary <- 
+ read_csv("data/diwali_dictionary.csv")
+diwali_dictionary %>% 
+  kable(caption = "Data Dictionary") %>%   
+  kable_classic(full_width = F, html_font = "Arial",) %>% 
+  kable_styling(font_size = 14,
+                bootstrap_options = c("striped")) %>%
+  kableExtra::as_image(.,height = 6,
+              file = "figures3/table_diwali2.png")
+
+## Graphs
+# diwali %>% 
+#   mutate(State = as_factor(State)) %>% 
+#   dplyr::group_by(State, Gender) %>% 
+#   dplyr::summarize(order_count = n(),
+#           total_sales = sum(Amount, na.rm = TRUE)) %>% 
+#   pivot_longer(cols = c(order_count, total_sales), names_to = "sales_figure", values_to = "value") %>% 
+#   gf_col(value ~ reorder(State, value), fill = ~ sales_figure, xlab = "State", position = "dodge") %>% 
+#   gf_facet_wrap(vars(sales_figure), scales = "free") %>% 
+#   gf_refine(coord_flip())
+
+# By State
+diwali %>% 
+  mutate(State = as_factor(State)) %>% 
+  dplyr::group_by(State) %>% 
+  dplyr::summarize(order_count = n(),
+          total_sales = sum(Amount, na.rm = TRUE)) %>% 
+  pivot_longer(cols = c(order_count, total_sales), 
+               names_to = "sales_figure", values_to = "value") %>% 
+  ggplot() + 
+  geom_col(aes(x = reorder(State, value), 
+                     y = value)) + 
+  
+  facet_wrap(vars(sales_figure), scales = "free") + 
+  coord_flip() + 
+  labs(title = "Diwali Sales in 2023", x = "State", 
+       y  = "Order Value", 
+       caption = "TidyTuesday 14-Nov-2023") -> pdiwali1
+pdiwali1
+
+ggsave(pdiwali1, filename = "figures3/pdiwali1.png", device = ragg::agg_png, res = 300)
+
+# By State and Gender
+diwali %>% 
+  mutate(State = as_factor(State)) %>% 
+  dplyr::group_by(State, Gender) %>% 
+  dplyr::summarize(order_count = n(),
+          total_sales = sum(Amount, na.rm = TRUE)) %>% 
+  pivot_longer(cols = c(order_count, total_sales), 
+               names_to = "sales_figure", values_to = "value") %>% 
+  ggplot() + 
+  geom_col(aes(x = reorder(State, value), 
+                     y = value)) + 
+  
+  facet_wrap(vars(Gender), scales = "free") + 
+  scale_pattern_manual(values=c('crosshatch', 'weave')) + 
+  coord_flip() + 
+  labs(title = "Diwali Sales in 2023", x = "State",caption = "TidyTuesday 14-Nov-2023") -> pdiwali2
+
+pdiwali2
+ggsave(pdiwali2, filename = "figures3/pdiwali2.png", device = ragg::agg_png, res = 300)
+
+## By Age Group
+diwali %>% drop_na() %>% 
+gf_histogram(~ Amount, fill = ~ Gender, colour = "black",
+             xlab = "Order Amount",
+             title = "Diwali sales 2023 across Age Groups and Gender",
+             caption = "TidyTuesday 14-Nov-2023") %>% 
+  gf_facet_wrap(vars(`Age Group`)) %>% 
+  gf_refine(theme(axis.text.x = element_text(angle = 45, hjust = 1, vjust = 1)), scale_fill_manual(values = c("grey20", "grey90"))) -> pdiwali3
+
+pdiwali3
+ggsave(pdiwali3, filename = "figures3/pdiwali3.png", device = ragg::agg_png, res = 300)
+
+```
+
+
+### C.4 Gender in Employment and Entrepreneurial Funding
+
+```{r}
+emp <- read_csv("data/OWID/employment-to-population-ratio-men-vs-women.csv")
+borrow <- read_csv("data/OWID/borrowing-to-start-or-expand-business-men-vs-women.csv")
+head(emp)
+head(borrow)
+
+emp %>% group_by(Year) %>% summarize(count = n())
+emp %>% filter(Year == 2015) %>% count()
+
+
+borrow %>% group_by(Year) %>% summarize(count = n())
+borrow %>% filter(Year == 2015) %>% count()
+
+
+emp %>%  
+  gf_point(`Employment-to-population ratio, women (%)`~`Employment-to-population ratio, men (%)` , size = ~ `Population (historical estimates)`, shape = 21, alpha = 0.3, show.legend = FALSE, 
+           title = "Employment across Gender, Time and Nations", 
+           caption = "Our World in Data") %>% 
+  gf_abline(slope = 1,intercept = 0) %>% 
+  gf_refine(scale_x_continuous(limits = c(0,100), 
+                               breaks = c(0,20,40,60,80,100),
+                               expand = c(0.01,0),
+                               labels = scales::percent_format(scale = 1)),
+            scale_y_continuous(limits = c(0,100), 
+                               breaks = c(0,20,40,60,80,100),
+                               expand = c(0, 0),labels = scales::percent_format(scale = 1))) -> pc4a
+
+pc4a
+ggsave(pc4a, filename = "figures3/pc4a.png", device = ragg::agg_png, res = 300)
+
+
+borrow %>% 
+  gf_point(`Borrowed to start, operate, or expand a farm or business, female (% age 15+)` ~ `Borrowed to start, operate, or expand a farm or business, male (% age 15+)`, 
+           size = ~ `Population (historical estimates)`, 
+           shape = 21,
+           title = "Entrepreneurial Borrowing across Gender, Time and Nations", 
+           subtitle = "To start, operate, or expand Farm or Business",
+           caption = "Our World in Data",
+           xlab = "Percentage Men Borrowers",
+           ylab = "Percentage Women Borrowers") %>%  
+  gf_abline(slope = 1, intercept = 0) %>%
+  gf_refine(scale_x_continuous(limits = c(0,30), breaks = c(0,5,10,15,20,25,30),labels = scales::percent_format(scale = 1),
+                               expand = c(0,0)),
+            scale_y_continuous(limits = c(0,30), breaks = c(0,5,10,15,20,25,30),labels = scales::percent_format(scale = 1),
+                               expand = c(0, 0))) -> pc4b
+pc4b
+ggsave(pc4b, filename = "figures3/pc4b.png", device = ragg::agg_png, res = 300)
+
+```
+

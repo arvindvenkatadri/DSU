@@ -1,0 +1,37 @@
+---
+title: "FakeData"
+author: "Arvind V"
+format: html
+---
+
+```{r}
+#| label: setup
+library(tidyverse)
+library(regressinator)
+library(charlatan)
+library(holodeck)
+library(wakefield) # Fake data with many types of variables, Likert too!
+library(explore) #  Data exploration and fake data
+library(modeldata)
+library(modeldatatoo)
+```
+## Datasets for Bump Charts
+```{r}
+
+```
+
+
+
+## Datasets for Radar Plots
+
+
+
+## Datasets for Pie, Fan, and Parliament Charts
+
+
+
+## Datasets for Alluvial and Sankey Plots
+
+
+
+## Datasets for Correlations and Linear Regression
